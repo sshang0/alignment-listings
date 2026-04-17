@@ -1,12 +1,309 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Alignment RE</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Alignment RE</title>
+  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{background:#0e0e0e;font-family:'DM Mono',monospace;}
+    ::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-track{background:#0e0e0e;}::-webkit-scrollbar-thumb{background:#c8a96e;}
+    .input{background:#111;border:1px solid #2a2a2a;color:#f0ede6;font-family:'DM Mono',monospace;font-size:12px;padding:10px 14px;width:100%;outline:none;transition:border-color 0.2s;}
+    .input:focus{border-color:#c8a96e;}
+    .label{font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:#555;margin-bottom:6px;display:block;}
+    .tag{display:inline-block;font-size:10px;letter-spacing:0.08em;padding:3px 10px;border:1px solid #333;color:#888;margin:2px;cursor:pointer;transition:all 0.15s;}
+    .tag.sel{border-color:#c8a96e;color:#c8a96e;background:rgba(200,169,110,0.08);}
+    .btn-gold{background:#c8a96e;color:#0e0e0e;border:none;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;padding:11px 22px;cursor:pointer;}
+    .btn-gold:hover{opacity:0.85;}
+    .btn-ghost{background:none;border:1px solid #333;color:#666;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:8px 16px;cursor:pointer;}
+    .btn-ghost:hover{border-color:#666;color:#aaa;}
+    .btn-danger{background:none;border:1px solid #3a1515;color:#7a3030;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:8px 16px;cursor:pointer;}
+    .btn-danger:hover{color:#c05050;}
+    .card{background:#161616;border:1px solid #222;padding:20px 24px;margin-bottom:12px;}
+    .tab-btn{background:none;border:none;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;cursor:pointer;padding:10px 24px;}
+    .tab-btn.active{background:#c8a96e;color:#0e0e0e;}
+    .tab-btn:not(.active){color:#666;border:1px solid #222;}
+    .hl-item{background:#111;border-left:2px solid #c8a96e;padding:8px 12px;}
+    .hl-label{font-size:9px;color:#555;letter-spacing:0.12em;text-transform:uppercase;}
+    .hl-value{font-size:12px;color:#f0ede6;margin-top:2px;}
+    .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+    .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+    .client-card{background:#111;border:1px solid #1e1e1e;padding:28px 32px;margin-bottom:16px;position:relative;overflow:hidden;}
+    .client-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#c8a96e,transparent);}
+    .code-row{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid #1a1a1a;flex-wrap:wrap;}
+    .code-badge{font-family:'DM Mono',monospace;font-size:14px;letter-spacing:0.2em;color:#c8a96e;background:rgba(200,169,110,0.08);border:1px solid rgba(200,169,110,0.2);padding:6px 14px;min-width:100px;text-align:center;}
+    .pill{display:inline-block;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:3px 8px;}
+    .pill-active{background:rgba(74,158,106,0.15);color:#4a9e6a;border:1px solid rgba(74,158,106,0.3);}
+    .pill-inactive{background:rgba(80,80,80,0.15);color:#555;border:1px solid #2a2a2a;}
+    select.input{appearance:none;}
+    @media(max-width:640px){.grid-2,.grid-3{grid-template-columns:1fr;}}
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useMemo } = React;
+    const SUPABASE_URL = "https://xszorbirodntozxdrqjd.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhzem9yYmlyb2RudG96eGRycWpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzODg4NDgsImV4cCI6MjA5MTk2NDg0OH0._EhWQmglwpYp2XshP3HwNXbrVdB2virOXL3RoaRKz_w";
+    const ADMIN_PW = "alignment2024";
+    const HOODS = ["Flatiron","Chelsea","Midtown West","Midtown East","UES","UWS","SoHo","Tribeca","Nomad","Greenwich Village","Lower East Side","Financial District","Hell's Kitchen","Gramercy"];
+    const USES = ["Retail","Restaurant","Office","Medical","Fitness","Beauty/Salon","Japanese Market","Grocery","Bar/Lounge","Pop-up","Gallery","Other"];
+    const BLANK = {neighborhood:"",sqftMin:"",sqftMax:"",useTypes:[],baseRent:"",pricePerSF:"",term:"",freeRent:"",condition:"",highlights:"",landlordContact:"",commission:"",notes:"",status:"Active"};
+
+    async function sb(path, opts={}) {
+      const r = await fetch(SUPABASE_URL+"/rest/v1"+path, {...opts, headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Content-Type":"application/json","Prefer":"return=representation",...(opts.headers||{})}});
+      const t = await r.text(); return t ? JSON.parse(t) : null;
+    }
+
+    function App() {
+      const [page, setPage] = useState("login");
+      const [pw, setPw] = useState(""); const [pwErr, setPwErr] = useState(false);
+      const [code, setCode] = useState(""); const [codeErr, setCodeErr] = useState(false);
+      const [listings, setListings] = useState([]); const [codes, setCodes] = useState([]);
+      const [loading, setLoading] = useState(false); const [tab, setTab] = useState("listings");
+      const [showForm, setShowForm] = useState(false); const [editId, setEditId] = useState(null);
+      const [q, setQ] = useState(""); const [expanded, setExpanded] = useState(null);
+      const [form, setForm] = useState(BLANK); const [filters, setFilters] = useState({n:"",s:"",u:""});
+      const [msg, setMsg] = useState("");
+
+      const loadL = async () => { try { const r=await sb("/listings?order=id.desc"); setListings((r||[]).map(x=>({...x.data,id:x.id}))); } catch(e){} };
+      const loadC = async () => { try { const r=await sb("/access_codes?order=id.desc"); setCodes(r||[]); } catch(e){} };
+
+      const adminLogin = async () => {
+        if(pw===ADMIN_PW){setLoading(true);await loadL();await loadC();setLoading(false);setPage("admin");setPwErr(false);}
+        else setPwErr(true);
+      };
+      const clientLogin = async () => {
+        try { const r=await sb("/access_codes?code=eq."+code.toUpperCase()+"&active=eq.true");
+          if(r&&r.length>0){await loadL();setPage("client");setCodeErr(false);}else setCodeErr(true);
+        } catch(e){setCodeErr(true);}
+      };
+
+      const toggleUse = u => setForm(f=>({...f,useTypes:f.useTypes.includes(u)?f.useTypes.filter(x=>x!==u):[...f.useTypes,u]}));
+
+      const save = async () => {
+        if(!form.neighborhood||!form.sqftMin)return;
+        setLoading(true);
+        try {
+          const data={...form,sqftMin:Number(form.sqftMin),sqftMax:Number(form.sqftMax)};
+          if(editId!==null)await sb("/listings?id=eq."+editId,{method:"PATCH",body:JSON.stringify({data})});
+          else await sb("/listings",{method:"POST",body:JSON.stringify({data})});
+          await loadL(); setForm(BLANK); setEditId(null); setShowForm(false);
+          setMsg("Saved!"); setTimeout(()=>setMsg(""),2000);
+        }catch(e){}
+        setLoading(false);
+      };
+
+      const del = async id => { setLoading(true); try{await sb("/listings?id=eq."+id,{method:"DELETE"});await loadL();}catch(e){} setLoading(false); };
+      const addCode = async () => { try{await sb("/access_codes",{method:"POST",body:JSON.stringify({code:Math.random().toString(36).substring(2,7).toUpperCase(),label:"New Client",active:true})});await loadC();}catch(e){} };
+      const toggleCode = async (id,a) => { try{await sb("/access_codes?id=eq."+id,{method:"PATCH",body:JSON.stringify({active:!a})});await loadC();}catch(e){} };
+      const delCode = async id => { try{await sb("/access_codes?id=eq."+id,{method:"DELETE"});await loadC();}catch(e){} };
+      const labelCode = async (id,label) => { try{await sb("/access_codes?id=eq."+id,{method:"PATCH",body:JSON.stringify({label})});await loadC();}catch(e){} };
+
+      const filtered = useMemo(()=>listings.filter(l=>{
+        if(!q.trim())return true; const s=q.toLowerCase();
+        return (l.neighborhood||"").toLowerCase().includes(s)||(l.useTypes||[]).some(u=>u.toLowerCase().includes(s))||(l.highlights||"").toLowerCase().includes(s)||(l.notes||"").toLowerCase().includes(s)||(l.landlordContact||"").toLowerCase().includes(s);
+      }),[listings,q]);
+
+      const clientL = useMemo(()=>listings.filter(l=>{
+        if(l.status!=="Active")return false;
+        if(filters.n&&l.neighborhood!==filters.n)return false;
+        if(filters.u&&!(l.useTypes||[]).includes(filters.u))return false;
+        if(filters.s){const[min,max]=filters.s.split("-").map(Number);if((l.sqftMin||0)>max||(l.sqftMax||0)<min)return false;}
+        return true;
+      }),[listings,filters]);
+
+      if(page==="login") return (
+        <div style={{background:"#0e0e0e",minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:24,color:"#f0ede6"}}>
+          <div style={{fontFamily:"'Playfair Display',serif",fontSize:28,color:"#c8a96e",marginBottom:4}}>ALIGNMENT RE</div>
+          <div style={{fontSize:10,color:"#333",letterSpacing:"0.2em",textTransform:"uppercase",marginBottom:48}}>Listing Platform</div>
+          <div style={{width:"100%",maxWidth:340}}>
+            <div style={{marginBottom:24}}>
+              <label className="label">Admin Password</label>
+              <input className="input" type="password" placeholder="Password" value={pw} onChange={e=>setPw(e.target.value)} onKeyDown={e=>e.key==="Enter"&&adminLogin()} />
+              {pwErr&&<div style={{fontSize:10,color:"#c05050",marginTop:6}}>Incorrect password</div>}
+              <button className="btn-gold" style={{width:"100%",marginTop:10}} onClick={adminLogin}>Admin Login</button>
+            </div>
+            <div style={{borderTop:"1px solid #1a1a1a",paddingTop:24}}>
+              <label className="label">Client Access Code</label>
+              <input className="input" placeholder="Enter code" value={code} onChange={e=>setCode(e.target.value)} onKeyDown={e=>e.key==="Enter"&&clientLogin()} />
+              {codeErr&&<div style={{fontSize:10,color:"#c05050",marginTop:6}}>Invalid or inactive code</div>}
+              <button className="btn-ghost" style={{width:"100%",marginTop:10}} onClick={clientLogin}>View Listings</button>
+            </div>
+          </div>
+        </div>
+      );
+
+      if(page==="client") return (
+        <div style={{background:"#0e0e0e",minHeight:"100vh",color:"#f0ede6"}}>
+          <div style={{borderBottom:"1px solid #1e1e1e",padding:"20px 32px",display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:12}}>
+            <div style={{fontFamily:"'Playfair Display',serif",fontSize:20,color:"#c8a96e"}}>ALIGNMENT RE</div>
+            <button className="btn-ghost" onClick={()=>setPage("login")}>Exit</button>
+          </div>
+          <div style={{maxWidth:860,margin:"0 auto",padding:"32px 24px"}}>
+            <div className="grid-3" style={{marginBottom:28}}>
+              <div><label className="label">Neighborhood</label>
+                <select className="input" value={filters.n} onChange={e=>setFilters(f=>({...f,n:e.target.value}))}>
+                  <option value="">All Areas</option>{HOODS.map(n=><option key={n}>{n}</option>)}
+                </select></div>
+              <div><label className="label">Size</label>
+                <select className="input" value={filters.s} onChange={e=>setFilters(f=>({...f,s:e.target.value}))}>
+                  <option value="">Any Size</option>
+                  <option value="0-1000">Under 1,000 SF</option>
+                  <option value="1000-2000">1,000–2,000 SF</option>
+                  <option value="2000-3000">2,000–3,000 SF</option>
+                  <option value="3000-5000">3,000–5,000 SF</option>
+                  <option value="5000-99999">5,000+ SF</option>
+                </select></div>
+              <div><label className="label">Use</label>
+                <select className="input" value={filters.u} onChange={e=>setFilters(f=>({...f,u:e.target.value}))}>
+                  <option value="">All Uses</option>{USES.map(u=><option key={u}>{u}</option>)}
+                </select></div>
+            </div>
+            {clientL.length===0&&<div style={{textAlign:"center",padding:"60px 0",color:"#333",fontSize:12}}>No matching spaces.</div>}
+            {clientL.map(l=>(
+              <div key={l.id} className="client-card">
+                <div style={{display:"flex",justifyContent:"space-between",flexWrap:"wrap",gap:12}}>
+                  <div>
+                    <div style={{fontFamily:"'Playfair Display',serif",fontSize:20,color:"#f0ede6",marginBottom:6}}>{l.neighborhood} Area</div>
+                    <div style={{fontSize:12,color:"#555",marginBottom:10}}>{(l.sqftMin||0).toLocaleString()}–{(l.sqftMax||0).toLocaleString()} SF</div>
+                    {(l.useTypes||[]).map(u=><span key={u} className="tag sel" style={{cursor:"default"}}>{u}</span>)}
+                  </div>
+                  <div style={{textAlign:"right"}}><div style={{fontSize:10,color:"#444",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:4}}>Asking Rent</div><div style={{color:"#c8a96e",fontSize:14}}>Contact for pricing</div></div>
+                </div>
+                {l.highlights&&<div style={{marginTop:16,fontSize:12,color:"#777",lineHeight:1.7}}>{l.highlights}</div>}
+                <div style={{marginTop:20,paddingTop:16,borderTop:"1px solid #1e1e1e"}}>
+                  <a href="mailto:Shiyuns@alignmentny.com" style={{textDecoration:"none"}}><button className="btn-gold">Inquire About This Space</button></a>
+                </div>
+              </div>
+            ))}
+            <div style={{marginTop:40,paddingTop:20,borderTop:"1px solid #1a1a1a",fontSize:11,color:"#333"}}>Alignment RE LLC · 153 W 27th St, Office 700 · NY 10001 · <span style={{color:"#c8a96e"}}>Shiyuns@alignmentny.com</span></div>
+          </div>
+        </div>
+      );
+
+      return (
+        <div style={{background:"#0e0e0e",minHeight:"100vh",color:"#f0ede6"}}>
+          <div style={{borderBottom:"1px solid #1e1e1e",padding:"20px 32px",display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:12}}>
+            <div><div style={{fontFamily:"'Playfair Display',serif",fontSize:22,color:"#c8a96e"}}>ALIGNMENT RE</div><div style={{fontSize:9,color:"#444",letterSpacing:"0.18em",textTransform:"uppercase",marginTop:2}}>Admin</div></div>
+            <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+              {msg&&<span style={{fontSize:10,color:"#4a9e6a"}}>{msg}</span>}
+              <button className={`tab-btn ${tab==="listings"?"active":""}`} onClick={()=>setTab("listings")}>Listings</button>
+              <button className={`tab-btn ${tab==="codes"?"active":""}`} onClick={()=>setTab("codes")}>Access Codes</button>
+              <button className="btn-ghost" onClick={()=>setPage("login")}>Logout</button>
+            </div>
+          </div>
+          <div style={{maxWidth:900,margin:"0 auto",padding:"32px 24px"}}>
+            {tab==="listings"&&<>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+                <div style={{fontSize:12,color:"#555"}}><span style={{color:"#c8a96e"}}>{listings.filter(l=>l.status==="Active").length}</span> active</div>
+                <button className="btn-gold" onClick={()=>{setForm(BLANK);setEditId(null);setShowForm(!showForm);}}>{showForm?"Cancel":"+ Add Listing"}</button>
+              </div>
+              <div style={{marginBottom:24,position:"relative"}}>
+                <input className="input" placeholder="Search neighborhood, use, landlord..." value={q} onChange={e=>setQ(e.target.value)} style={{paddingLeft:36}} />
+                <span style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",color:"#444",fontSize:14,pointerEvents:"none"}}>⌕</span>
+                {q&&<span onClick={()=>setQ("")} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",color:"#555",cursor:"pointer",fontSize:12}}>✕</span>}
+              </div>
+              {showForm&&<div className="card" style={{marginBottom:24,borderColor:"#2a2a2a"}}>
+                <div style={{fontSize:11,color:"#c8a96e",letterSpacing:"0.15em",textTransform:"uppercase",marginBottom:20}}>{editId?"Edit Listing":"New Listing"}</div>
+                <div className="grid-3" style={{marginBottom:12}}>
+                  <div><label className="label">Neighborhood *</label>
+                    <select className="input" value={form.neighborhood} onChange={e=>setForm(f=>({...f,neighborhood:e.target.value}))}>
+                      <option value="">Select...</option>{HOODS.map(n=><option key={n}>{n}</option>)}
+                    </select></div>
+                  <div><label className="label">SF Min</label><input className="input" type="number" placeholder="1500" value={form.sqftMin} onChange={e=>setForm(f=>({...f,sqftMin:e.target.value}))} /></div>
+                  <div><label className="label">SF Max</label><input className="input" type="number" placeholder="2500" value={form.sqftMax} onChange={e=>setForm(f=>({...f,sqftMax:e.target.value}))} /></div>
+                </div>
+                <div style={{marginBottom:12}}><label className="label">Use Types</label><div>{USES.map(u=><span key={u} className={`tag ${form.useTypes.includes(u)?"sel":""}`} onClick={()=>toggleUse(u)}>{u}</span>)}</div></div>
+                <div className="grid-3" style={{marginBottom:12}}>
+                  <div><label className="label">Base Rent</label><input className="input" placeholder="$20,000/mo" value={form.baseRent} onChange={e=>setForm(f=>({...f,baseRent:e.target.value}))} /></div>
+                  <div><label className="label">Price/SF</label><input className="input" placeholder="$120/SF" value={form.pricePerSF} onChange={e=>setForm(f=>({...f,pricePerSF:e.target.value}))} /></div>
+                  <div><label className="label">Free Rent</label><input className="input" placeholder="3 months" value={form.freeRent} onChange={e=>setForm(f=>({...f,freeRent:e.target.value}))} /></div>
+                </div>
+                <div className="grid-2" style={{marginBottom:12}}>
+                  <div><label className="label">Term</label><input className="input" placeholder="10 years" value={form.term} onChange={e=>setForm(f=>({...f,term:e.target.value}))} /></div>
+                  <div><label className="label">Condition</label><input className="input" placeholder="White box..." value={form.condition} onChange={e=>setForm(f=>({...f,condition:e.target.value}))} /></div>
+                </div>
+                <div style={{marginBottom:12}}><label className="label">Client Highlights</label><input className="input" placeholder="Corner unit, high foot traffic..." value={form.highlights} onChange={e=>setForm(f=>({...f,highlights:e.target.value}))} /></div>
+                <div style={{borderTop:"1px solid #1a1a1a",paddingTop:16,marginBottom:12}}>
+                  <div style={{fontSize:10,color:"#c8a96e",letterSpacing:"0.15em",textTransform:"uppercase",marginBottom:12}}>Internal Only</div>
+                  <div className="grid-2" style={{marginBottom:12}}>
+                    <div><label className="label">Landlord Contact</label><input className="input" placeholder="Name, number..." value={form.landlordContact} onChange={e=>setForm(f=>({...f,landlordContact:e.target.value}))} /></div>
+                    <div><label className="label">Commission</label><input className="input" placeholder="Full, split..." value={form.commission} onChange={e=>setForm(f=>({...f,commission:e.target.value}))} /></div>
+                  </div>
+                  <div style={{marginBottom:12}}><label className="label">Private Notes</label><textarea className="input" rows={2} value={form.notes} onChange={e=>setForm(f=>({...f,notes:e.target.value}))} style={{resize:"vertical"}} /></div>
+                  <div><label className="label">Status</label>
+                    <select className="input" style={{width:"auto"}} value={form.status} onChange={e=>setForm(f=>({...f,status:e.target.value}))}>
+                      <option>Active</option><option>Deal in Progress</option><option>Inactive</option>
+                    </select></div>
+                </div>
+                <button className="btn-gold" onClick={save} disabled={loading}>{loading?"Saving...":"Save"}</button>
+              </div>}
+              {listings.length===0&&<div style={{textAlign:"center",padding:"60px 0",color:"#333",fontSize:12}}>No listings yet.</div>}
+              {filtered.map(l=>(
+                <div key={l.id} className="card">
+                  <div style={{display:"flex",justifyContent:"space-between",flexWrap:"wrap",gap:8}}>
+                    <div>
+                      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:4,flexWrap:"wrap"}}>
+                        <span style={{width:6,height:6,borderRadius:"50%",background:l.status==="Active"?"#4a9e6a":"#444",display:"inline-block"}} />
+                        <span style={{fontFamily:"'Playfair Display',serif",fontSize:17,color:"#f0ede6"}}>{l.neighborhood}</span>
+                        <span style={{fontSize:11,color:"#444"}}>{(l.sqftMin||0).toLocaleString()}–{(l.sqftMax||0).toLocaleString()} SF</span>
+                        <span style={{fontSize:10,color:"#444"}}>{l.status}</span>
+                      </div>
+                      {(l.useTypes||[]).map(u=><span key={u} className="tag sel" style={{cursor:"default"}}>{u}</span>)}
+                    </div>
+                    <div style={{textAlign:"right"}}><div style={{color:"#c8a96e",fontSize:14}}>{l.baseRent}</div><div style={{color:"#444",fontSize:11}}>{l.pricePerSF}</div></div>
+                  </div>
+                  {expanded===l.id&&<>
+                    <div style={{borderTop:"1px solid #1a1a1a",margin:"16px 0"}} />
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12}}>
+                      {l.term&&<div className="hl-item"><div className="hl-label">Term</div><div className="hl-value">{l.term}</div></div>}
+                      {l.freeRent&&<div className="hl-item"><div className="hl-label">Free Rent</div><div className="hl-value">{l.freeRent}</div></div>}
+                      {l.condition&&<div className="hl-item"><div className="hl-label">Condition</div><div className="hl-value">{l.condition}</div></div>}
+                      {l.commission&&<div className="hl-item"><div className="hl-label">Commission</div><div className="hl-value">{l.commission}</div></div>}
+                    </div>
+                    {l.landlordContact&&<div style={{fontSize:11,color:"#666",marginBottom:6}}>Landlord: <span style={{color:"#c8a96e"}}>{l.landlordContact}</span></div>}
+                    {l.highlights&&<div style={{fontSize:11,color:"#666",marginBottom:6}}>Highlights: {l.highlights}</div>}
+                    {l.notes&&<div style={{fontSize:11,color:"#444",fontStyle:"italic"}}>Notes: {l.notes}</div>}
+                  </>}
+                  <div style={{display:"flex",gap:8,marginTop:14}}>
+                    <button className="btn-ghost" onClick={()=>setExpanded(expanded===l.id?null:l.id)}>{expanded===l.id?"Collapse":"Details"}</button>
+                    <button className="btn-ghost" onClick={()=>{setForm({...l});setEditId(l.id);setShowForm(true);}}>Edit</button>
+                    <button className="btn-danger" onClick={()=>del(l.id)}>Delete</button>
+                  </div>
+                </div>
+              ))}
+            </>}
+            {tab==="codes"&&<>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24}}>
+                <div style={{fontSize:12,color:"#555"}}><span style={{color:"#c8a96e"}}>{codes.filter(c=>c.active).length}</span> active codes</div>
+                <button className="btn-gold" onClick={addCode}>+ Generate Code</button>
+              </div>
+              {codes.length===0&&<div style={{textAlign:"center",padding:"60px 0",color:"#333",fontSize:12}}>No codes yet.</div>}
+              {codes.map(c=>(
+                <div key={c.id} className="code-row">
+                  <div className="code-badge">{c.code}</div>
+                  <input className="input" style={{flex:1,maxWidth:180}} value={c.label||""} onChange={e=>labelCode(c.id,e.target.value)} placeholder="Client name..." />
+                  <span className={`pill ${c.active?"pill-active":"pill-inactive"}`}>{c.active?"Active":"Inactive"}</span>
+                  <button className="btn-ghost" onClick={()=>toggleCode(c.id,c.active)}>{c.active?"Deactivate":"Activate"}</button>
+                  <button className="btn-danger" onClick={()=>delCode(c.id)}>Delete</button>
+                </div>
+              ))}
+              {codes.length>0&&<div style={{marginTop:24,padding:16,background:"#111",border:"1px solid #1e1e1e",fontSize:11,color:"#555",lineHeight:2}}>
+                <div style={{color:"#c8a96e",fontSize:10,letterSpacing:"0.15em",textTransform:"uppercase",marginBottom:8}}>How to share</div>
+                给客户这个网站链接，单独发给他们access code。他们输入code才能看listing，随时可以停用。
+              </div>}
+            </>}
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
 </html>
