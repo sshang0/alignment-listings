@@ -32,6 +32,7 @@
     .hl-value{font-size:12px;color:#f0ede6;margin-top:2px;}
     .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
     .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+    .grid-4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;}
     .client-card{background:#111;border:1px solid #1e1e1e;padding:28px 32px;margin-bottom:16px;position:relative;overflow:hidden;}
     .client-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#c8a96e,transparent);}
     .code-row{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid #1a1a1a;flex-wrap:wrap;}
@@ -40,7 +41,7 @@
     .pill-active{background:rgba(74,158,106,0.15);color:#4a9e6a;border:1px solid rgba(74,158,106,0.3);}
     .pill-inactive{background:rgba(80,80,80,0.15);color:#555;border:1px solid #2a2a2a;}
     select.input{appearance:none;}
-    @media(max-width:640px){.grid-2,.grid-3{grid-template-columns:1fr;}}
+    @media(max-width:640px){.grid-2,.grid-3,.grid-4{grid-template-columns:1fr;}}
   </style>
 </head>
 <body>
@@ -52,7 +53,22 @@
     const ADMIN_PW = "alignment2024";
     const HOODS = ["Flatiron","Chelsea","Midtown West","Midtown East","UES","UWS","SoHo","Tribeca","Nomad","Greenwich Village","Lower East Side","Financial District","Hell's Kitchen","Gramercy","Downtown Brooklyn","Williamsburg"];
     const USES = ["Retail","Restaurant","Office","Medical","Fitness","Beauty/Salon","Nail Salon","Japanese Market","Japanese Restaurant","Omakase","Grocery","Bar/Lounge","Pop-up","Gallery","Other"];
-    const BLANK = {neighborhood:"",address:"",sqftMin:"",sqftMax:"",useTypes:[],baseRent:"",pricePerSF:"",term:"",freeRent:"",condition:"",highlights:"",landlordContact:"",commission:"",notes:"",status:"Active"};
+    const RENT_RANGES = [
+      {label:"Under $5,000/mo",min:0,max:5000},
+      {label:"$5,000–$10,000/mo",min:5000,max:10000},
+      {label:"$10,000–$15,000/mo",min:10000,max:15000},
+      {label:"$15,000–$20,000/mo",min:15000,max:20000},
+      {label:"$20,000–$30,000/mo",min:20000,max:30000},
+      {label:"$30,000–$50,000/mo",min:30000,max:50000},
+      {label:"$50,000+/mo",min:50000,max:9999999}
+    ];
+    const BLANK = {neighborhood:"",address:"",sqftMin:"",sqftMax:"",useTypes:[],baseRent:"",rentAmount:0,pricePerSF:"",term:"",freeRent:"",condition:"",highlights:"",landlordContact:"",commission:"",notes:"",status:"Active"};
+
+    function parseRent(str) {
+      if(!str)return 0;
+      const n=str.replace(/[^0-9.]/g,"");
+      return n ? parseFloat(n) : 0;
+    }
 
     async function sb(path, opts={}) {
       const r = await fetch(SUPABASE_URL+"/rest/v1"+path, {...opts, headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Content-Type":"application/json","Prefer":"return=representation",...(opts.headers||{})}});
@@ -67,7 +83,9 @@
       const [loading, setLoading] = useState(false); const [tab, setTab] = useState("listings");
       const [showForm, setShowForm] = useState(false); const [editId, setEditId] = useState(null);
       const [q, setQ] = useState(""); const [expanded, setExpanded] = useState(null);
-      const [form, setForm] = useState(BLANK); const [filters, setFilters] = useState({n:"",s:"",u:""});
+      const [form, setForm] = useState(BLANK);
+      const [filters, setFilters] = useState({n:"",s:"",u:"",r:""});
+      const [adminFilters, setAdminFilters] = useState({n:"",r:""});
       const [msg, setMsg] = useState("");
 
       const loadL = async () => { try { const r=await sb("/listings?order=id.desc"); setListings((r||[]).map(x=>({...x.data,id:x.id}))); } catch(e){} };
@@ -89,7 +107,8 @@
         if(!form.neighborhood||!form.sqftMin)return;
         setLoading(true);
         try {
-          const data={...form,sqftMin:Number(form.sqftMin),sqftMax:Number(form.sqftMax)};
+          const rentNum = parseRent(form.baseRent);
+          const data={...form,sqftMin:Number(form.sqftMin),sqftMax:Number(form.sqftMax),rentAmount:rentNum};
           if(editId!==null)await sb("/listings?id=eq."+editId,{method:"PATCH",body:JSON.stringify({data})});
           else await sb("/listings",{method:"POST",body:JSON.stringify({data})});
           await loadL(); setForm(BLANK); setEditId(null); setShowForm(false);
@@ -105,15 +124,27 @@
       const labelCode = async (id,label) => { try{await sb("/access_codes?id=eq."+id,{method:"PATCH",body:JSON.stringify({label})});await loadC();}catch(e){} };
 
       const filtered = useMemo(()=>listings.filter(l=>{
-        if(!q.trim())return true; const s=q.toLowerCase();
+        if(adminFilters.n && l.neighborhood!==adminFilters.n) return false;
+        if(adminFilters.r){
+          const range=RENT_RANGES[parseInt(adminFilters.r)];
+          const rent=l.rentAmount||parseRent(l.baseRent);
+          if(range && (rent<range.min || rent>=range.max)) return false;
+        }
+        if(!q.trim()) return true;
+        const s=q.toLowerCase();
         return (l.neighborhood||"").toLowerCase().includes(s)||(l.address||"").toLowerCase().includes(s)||(l.useTypes||[]).some(u=>u.toLowerCase().includes(s))||(l.highlights||"").toLowerCase().includes(s)||(l.notes||"").toLowerCase().includes(s)||(l.landlordContact||"").toLowerCase().includes(s);
-      }),[listings,q]);
+      }),[listings,q,adminFilters]);
 
       const clientL = useMemo(()=>listings.filter(l=>{
         if(l.status!=="Active")return false;
         if(filters.n&&l.neighborhood!==filters.n)return false;
         if(filters.u&&!(l.useTypes||[]).includes(filters.u))return false;
         if(filters.s){const[min,max]=filters.s.split("-").map(Number);if((l.sqftMin||0)>max||(l.sqftMax||0)<min)return false;}
+        if(filters.r){
+          const range=RENT_RANGES[parseInt(filters.r)];
+          const rent=l.rentAmount||parseRent(l.baseRent);
+          if(range && (rent<range.min || rent>=range.max)) return false;
+        }
         return true;
       }),[listings,filters]);
 
@@ -145,7 +176,7 @@
             <button className="btn-ghost" onClick={()=>setPage("login")}>Exit</button>
           </div>
           <div style={{maxWidth:860,margin:"0 auto",padding:"32px 24px"}}>
-            <div className="grid-3" style={{marginBottom:28}}>
+            <div className="grid-4" style={{marginBottom:28}}>
               <div><label className="label">Neighborhood</label>
                 <select className="input" value={filters.n} onChange={e=>setFilters(f=>({...f,n:e.target.value}))}>
                   <option value="">All Areas</option>{HOODS.map(n=><option key={n}>{n}</option>)}
@@ -162,6 +193,10 @@
               <div><label className="label">Use</label>
                 <select className="input" value={filters.u} onChange={e=>setFilters(f=>({...f,u:e.target.value}))}>
                   <option value="">All Uses</option>{USES.map(u=><option key={u}>{u}</option>)}
+                </select></div>
+              <div><label className="label">Rent Range</label>
+                <select className="input" value={filters.r} onChange={e=>setFilters(f=>({...f,r:e.target.value}))}>
+                  <option value="">Any Price</option>{RENT_RANGES.map((r,i)=><option key={i} value={i}>{r.label}</option>)}
                 </select></div>
             </div>
             {clientL.length===0&&<div style={{textAlign:"center",padding:"60px 0",color:"#333",fontSize:12}}>No matching spaces.</div>}
@@ -203,10 +238,20 @@
                 <div style={{fontSize:12,color:"#555"}}><span style={{color:"#c8a96e"}}>{listings.filter(l=>l.status==="Active").length}</span> active</div>
                 <button className="btn-gold" onClick={()=>{setForm(BLANK);setEditId(null);setShowForm(!showForm);}}>{showForm?"Cancel":"+ Add Listing"}</button>
               </div>
-              <div style={{marginBottom:24,position:"relative"}}>
+              <div style={{marginBottom:12,position:"relative"}}>
                 <input className="input" placeholder="Search neighborhood, address, use, landlord..." value={q} onChange={e=>setQ(e.target.value)} style={{paddingLeft:36}} />
                 <span style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",color:"#444",fontSize:14,pointerEvents:"none"}}>⌕</span>
                 {q&&<span onClick={()=>setQ("")} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",color:"#555",cursor:"pointer",fontSize:12}}>✕</span>}
+              </div>
+              <div className="grid-2" style={{marginBottom:24}}>
+                <div><label className="label">Filter by Neighborhood</label>
+                  <select className="input" value={adminFilters.n} onChange={e=>setAdminFilters(f=>({...f,n:e.target.value}))}>
+                    <option value="">All Neighborhoods</option>{HOODS.map(n=><option key={n}>{n}</option>)}
+                  </select></div>
+                <div><label className="label">Filter by Rent</label>
+                  <select className="input" value={adminFilters.r} onChange={e=>setAdminFilters(f=>({...f,r:e.target.value}))}>
+                    <option value="">Any Price</option>{RENT_RANGES.map((r,i)=><option key={i} value={i}>{r.label}</option>)}
+                  </select></div>
               </div>
               {showForm&&<div className="card" style={{marginBottom:24,borderColor:"#2a2a2a"}}>
                 <div style={{fontSize:11,color:"#c8a96e",letterSpacing:"0.15em",textTransform:"uppercase",marginBottom:20}}>{editId?"Edit Listing":"New Listing"}</div>
@@ -218,12 +263,12 @@
                   <div><label className="label">Address (Internal Only)</label><input className="input" placeholder="123 W 14th St..." value={form.address} onChange={e=>setForm(f=>({...f,address:e.target.value}))} /></div>
                 </div>
                 <div className="grid-2" style={{marginBottom:12}}>
-                  <div><label className="label">SF Min</label><input className="input" type="number" placeholder="1500" value={form.sqftMin} onChange={e=>setForm(f=>({...f,sqftMin:e.target.value}))} /></div>
+                  <div><label className="label">SF Min *</label><input className="input" type="number" placeholder="1500" value={form.sqftMin} onChange={e=>setForm(f=>({...f,sqftMin:e.target.value}))} /></div>
                   <div><label className="label">SF Max</label><input className="input" type="number" placeholder="2500" value={form.sqftMax} onChange={e=>setForm(f=>({...f,sqftMax:e.target.value}))} /></div>
                 </div>
                 <div style={{marginBottom:12}}><label className="label">Use Types</label><div>{USES.map(u=><span key={u} className={`tag ${form.useTypes.includes(u)?"sel":""}`} onClick={()=>toggleUse(u)}>{u}</span>)}</div></div>
                 <div className="grid-3" style={{marginBottom:12}}>
-                  <div><label className="label">Base Rent</label><input className="input" placeholder="$20,000/mo" value={form.baseRent} onChange={e=>setForm(f=>({...f,baseRent:e.target.value}))} /></div>
+                  <div><label className="label">Base Rent (e.g. $20,000)</label><input className="input" placeholder="$20,000/mo" value={form.baseRent} onChange={e=>setForm(f=>({...f,baseRent:e.target.value}))} /></div>
                   <div><label className="label">Price/SF</label><input className="input" placeholder="$120/SF" value={form.pricePerSF} onChange={e=>setForm(f=>({...f,pricePerSF:e.target.value}))} /></div>
                   <div><label className="label">Free Rent</label><input className="input" placeholder="3 months" value={form.freeRent} onChange={e=>setForm(f=>({...f,freeRent:e.target.value}))} /></div>
                 </div>
@@ -247,6 +292,7 @@
                 <button className="btn-gold" onClick={save} disabled={loading}>{loading?"Saving...":"Save"}</button>
               </div>}
               {listings.length===0&&<div style={{textAlign:"center",padding:"60px 0",color:"#333",fontSize:12}}>No listings yet.</div>}
+              {listings.length>0&&filtered.length===0&&<div style={{textAlign:"center",padding:"40px 0",color:"#333",fontSize:12}}>No matching listings.</div>}
               {filtered.map(l=>(
                 <div key={l.id} className="card">
                   <div style={{display:"flex",justifyContent:"space-between",flexWrap:"wrap",gap:8}}>
