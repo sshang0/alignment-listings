@@ -33,7 +33,6 @@
     .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
     .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
     .grid-4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;}
-    .grid-5{display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:12px;}
     .client-card{background:#111;border:1px solid #1e1e1e;padding:28px 32px;margin-bottom:16px;position:relative;overflow:hidden;}
     .client-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#c8a96e,transparent);}
     .code-row{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid #1a1a1a;flex-wrap:wrap;}
@@ -50,21 +49,21 @@
     .clear-btn{font-size:9px;color:#555;cursor:pointer;letter-spacing:0.1em;text-transform:uppercase;border:none;background:none;font-family:'DM Mono',monospace;}
     .clear-btn:hover{color:#c8a96e;}
     select.input{appearance:none;}
-    @media(max-width:640px){.grid-2,.grid-3,.grid-4,.grid-5{grid-template-columns:1fr;}}
+    @media(max-width:640px){.grid-2,.grid-3,.grid-4{grid-template-columns:1fr;}}
   </style>
 </head>
 <body>
   <div id="root"></div>
   <script type="text/babel">
     const { useState, useMemo } = React;
-    const SB_URL = "https://xszorbirodntozxdrqjd.supabase.co";
-    const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhzem9yYmlyb2RudG96eGRycWpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzODg4NDgsImV4cCI6MjA5MTk2NDg0OH0._EhWQmglwpYp2XshP3HwNXbrVdB2virOXL3RoaRKz_w";
-    const ADMIN_PW = "alignment2024";
-    const HOODS = ["Flatiron","Chelsea","Midtown West","Midtown East","UES","UWS","SoHo","Tribeca","Nomad","Greenwich Village","Lower East Side","Financial District","Hell's Kitchen","Gramercy","Downtown Brooklyn","Williamsburg"];
-    const USES = ["Retail","Restaurant","Office","Medical","Fitness","Beauty/Salon","Nail Salon","Japanese Market","Japanese Restaurant","Omakase","Grocery","Bar/Lounge","Pop-up","Gallery","Other"];
-    const RENTS = [{l:"Under $5,000/mo",a:0,b:5000},{l:"$5,000–$10,000/mo",a:5000,b:10000},{l:"$10,000–$15,000/mo",a:10000,b:15000},{l:"$15,000–$20,000/mo",a:15000,b:20000},{l:"$20,000–$30,000/mo",a:20000,b:30000},{l:"$30,000–$50,000/mo",a:30000,b:50000},{l:"$50,000+/mo",a:50000,b:9999999}];
+    const SB_URL="https://xszorbirodntozxdrqjd.supabase.co";
+    const SB_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhzem9yYmlyb2RudG96eGRycWpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzODg4NDgsImV4cCI6MjA5MTk2NDg0OH0._EhWQmglwpYp2XshP3HwNXbrVdB2virOXL3RoaRKz_w";
+    const ADMIN_PW="alignment2024";
+    const HOODS=["Flatiron","Chelsea","Midtown West","Midtown East","UES","UWS","SoHo","Tribeca","Nomad","Greenwich Village","Lower East Side","Financial District","Hell's Kitchen","Gramercy","Downtown Brooklyn","Williamsburg"];
+    const USES=["Retail","Restaurant","Office","Medical","Fitness","Beauty/Salon","Nail Salon","Japanese Market","Japanese Restaurant","Omakase","Grocery","Bar/Lounge","Pop-up","Gallery","Other"];
+    const RENTS=[{l:"Under $5,000/mo",a:0,b:5000},{l:"$5,000–$10,000/mo",a:5000,b:10000},{l:"$10,000–$15,000/mo",a:10000,b:15000},{l:"$15,000–$20,000/mo",a:15000,b:20000},{l:"$20,000–$30,000/mo",a:20000,b:30000},{l:"$30,000–$50,000/mo",a:30000,b:50000},{l:"$50,000+/mo",a:50000,b:9999999}];
     const YNP=["","Yes","No","Possible"];const YNU=["","Yes","No","Unknown"];const YN=["","Yes","No"];
-    const BLANK={neighborhood:"",address:"",sqftMin:"",sqftMax:"",useTypes:[],baseRent:"",rentAmount:0,pricePerSF:"",term:"",condition:"",highlights:"",notes:"",status:"Active",gas:"",vents:"",whiteBox:"",basement:"",outdoor:"",ada:"",liquor:"",corner:"",ceilingHeight:""};
+    const BLANK={neighborhood:"",address:"",sqftMin:"",sqftMax:"",mezzanine:"",useTypes:[],baseRent:"",rentAmount:0,pricePerSF:"",term:"",condition:"",highlights:"",notes:"",status:"Active",gas:"",vents:"",whiteBox:"",basement:"",outdoor:"",ada:"",liquor:"",corner:"",ceilingHeight:""};
     const AF_BLANK={n:"",r:"",gas:"",vents:"",whiteBox:"",basement:"",outdoor:"",liquor:"",corner:"",ch:""};
     const CH_OPTS=["","8 ft or less","9 ft","10 ft","11 ft","12 ft","13 ft","14 ft","15 ft+"];
 
@@ -88,15 +87,13 @@
 
       const ldL=async()=>{try{const r=await sb("/listings?order=id.desc");setLs((r||[]).map(x=>({...x.data,id:x.id})));}catch(e){}};
       const ldC=async()=>{try{const r=await sb("/access_codes?order=id.desc");setCodes(r||[]);}catch(e){}};
-
       const aLogin=async()=>{if(pw===ADMIN_PW){setLd(true);await ldL();await ldC();setLd(false);setPage("admin");setPwE(false);}else setPwE(true);};
       const cLogin=async()=>{try{const r=await sb("/access_codes?code=eq."+code.toUpperCase()+"&active=eq.true");if(r&&r.length>0){await ldL();setPage("client");setCodeE(false);}else setCodeE(true);}catch(e){setCodeE(true);}};
-
       const tUse=u=>setForm(f=>({...f,useTypes:f.useTypes.includes(u)?f.useTypes.filter(x=>x!==u):[...f.useTypes,u]}));
 
       const save=async()=>{
         if(!form.neighborhood||!form.sqftMin)return;setLd(true);
-        try{const d={...form,sqftMin:Number(form.sqftMin),sqftMax:Number(form.sqftMax),rentAmount:pr(form.baseRent)};
+        try{const d={...form,sqftMin:Number(form.sqftMin),sqftMax:Number(form.sqftMax),mezzanine:form.mezzanine?Number(form.mezzanine):0,rentAmount:pr(form.baseRent)};
         if(eid!==null)await sb("/listings?id=eq."+eid,{method:"PATCH",body:JSON.stringify({data:d})});
         else await sb("/listings",{method:"POST",body:JSON.stringify({data:d})});
         await ldL();setForm(BLANK);setEid(null);setSf(false);setMsg("Saved!");setTimeout(()=>setMsg(""),2000);}catch(e){}setLd(false);
@@ -111,13 +108,7 @@
       function rentMatch(l,ri){if(!ri&&ri!==0)return true;const rng=RENTS[parseInt(ri)];if(!rng)return true;const rent=l.rentAmount||pr(l.baseRent);return rent>=rng.a&&rent<rng.b;}
       function sizeMatch(l,s){if(!s)return true;const[min,max]=s.split("-").map(Number);return!((l.sqftMin||0)>max||(l.sqftMax||0)<min);}
       function featMatch(val,filter){if(!filter)return true;return val===filter;}
-      function chMatch(l,filter){
-        if(!filter)return true;
-        const h=parseFloat(l.ceilingHeight)||0;
-        if(filter==="8 ft or less")return h>0&&h<=8;
-        if(filter==="15 ft+")return h>=15;
-        const ft=parseInt(filter);return h>=ft&&h<ft+1;
-      }
+      function chMatch(l,filter){if(!filter)return true;const h=parseFloat(l.ceilingHeight)||0;if(filter==="8 ft or less")return h>0&&h<=8;if(filter==="15 ft+")return h>=15;const ft=parseInt(filter);return h>=ft&&h<ft+1;}
 
       const activeFilterCount=Object.values(af).filter(v=>v).length;
 
@@ -147,6 +138,13 @@
 
       const S=(k,v)=>setForm(f=>({...f,[k]:v}));
       const A=(k,v)=>setAf(f=>({...f,[k]:v}));
+
+      function sfInfo(l){
+        let s=(l.sqftMin||0).toLocaleString()+"–"+(l.sqftMax||0).toLocaleString()+" SF";
+        if(l.mezzanine)s+=" + "+Number(l.mezzanine).toLocaleString()+" SF Mezz";
+        if(l.ceilingHeight)s+=" · "+l.ceilingHeight+" ft";
+        return s;
+      }
 
       if(page==="login")return(
         <div style={{background:"#0e0e0e",minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:24,color:"#f0ede6"}}>
@@ -188,7 +186,7 @@
                 <div style={{display:"flex",justifyContent:"space-between",flexWrap:"wrap",gap:12}}>
                   <div>
                     <div style={{fontFamily:"'Playfair Display',serif",fontSize:20,color:"#f0ede6",marginBottom:6}}>{l.neighborhood} Area</div>
-                    <div style={{fontSize:12,color:"#555",marginBottom:10}}>{(l.sqftMin||0).toLocaleString()}–{(l.sqftMax||0).toLocaleString()} SF{l.ceilingHeight?(" · "+l.ceilingHeight+" ft ceiling"):""}</div>
+                    <div style={{fontSize:12,color:"#555",marginBottom:10}}>{sfInfo(l)}</div>
                     {(l.useTypes||[]).map(u=><span key={u} className="tag sel" style={{cursor:"default"}}>{u}</span>)}
                   </div>
                   <div style={{textAlign:"right"}}><div style={{fontSize:10,color:"#444",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:4}}>Asking Rent</div><div style={{color:"#c8a96e",fontSize:14}}>Contact for pricing</div></div>
@@ -225,7 +223,6 @@
                 <span style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",color:"#444",fontSize:14,pointerEvents:"none"}}>⌕</span>
                 {q&&<span onClick={()=>setQ("")} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",color:"#555",cursor:"pointer",fontSize:12}}>✕</span>}
               </div>
-
               <div className="filter-section">
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:showFilters?12:0}}>
                   <div style={{display:"flex",alignItems:"center",gap:10}}>
@@ -261,9 +258,10 @@
                   <div><label className="label">Neighborhood *</label><select className="input" value={form.neighborhood} onChange={e=>S("neighborhood",e.target.value)}><option value="">Select...</option>{HOODS.map(n=><option key={n}>{n}</option>)}</select></div>
                   <div><label className="label">Address (Internal Only)</label><input className="input" placeholder="123 W 14th St..." value={form.address} onChange={e=>S("address",e.target.value)} /></div>
                 </div>
-                <div className="grid-3" style={{marginBottom:12}}>
+                <div className="grid-4" style={{marginBottom:12}}>
                   <div><label className="label">SF Min *</label><input className="input" type="number" placeholder="1500" value={form.sqftMin} onChange={e=>S("sqftMin",e.target.value)} /></div>
                   <div><label className="label">SF Max</label><input className="input" type="number" placeholder="2500" value={form.sqftMax} onChange={e=>S("sqftMax",e.target.value)} /></div>
+                  <div><label className="label">Mezzanine (SF)</label><input className="input" type="number" placeholder="500" value={form.mezzanine} onChange={e=>S("mezzanine",e.target.value)} /></div>
                   <div><label className="label">Ceiling Height (ft)</label><input className="input" placeholder="12" value={form.ceilingHeight} onChange={e=>S("ceilingHeight",e.target.value)} /></div>
                 </div>
                 <div style={{marginBottom:12}}><label className="label">Use Types</label><div>{USES.map(u=><span key={u} className={`tag ${form.useTypes.includes(u)?"sel":""}`} onClick={()=>tUse(u)}>{u}</span>)}</div></div>
@@ -312,8 +310,7 @@
                         <span style={{width:6,height:6,borderRadius:"50%",background:l.status==="Active"?"#4a9e6a":"#444",display:"inline-block"}} />
                         <span style={{fontFamily:"'Playfair Display',serif",fontSize:17,color:"#f0ede6"}}>{l.neighborhood}</span>
                         {l.address&&<span style={{fontSize:11,color:"#c8a96e"}}>· {l.address}</span>}
-                        <span style={{fontSize:11,color:"#444"}}>{(l.sqftMin||0).toLocaleString()}–{(l.sqftMax||0).toLocaleString()} SF</span>
-                        {l.ceilingHeight&&<span style={{fontSize:11,color:"#444"}}>{l.ceilingHeight}ft</span>}
+                        <span style={{fontSize:11,color:"#444"}}>{sfInfo(l)}</span>
                         <span style={{fontSize:10,color:"#444"}}>{l.status}</span>
                       </div>
                       {(l.useTypes||[]).map(u=><span key={u} className="tag sel" style={{cursor:"default"}}>{u}</span>)}
@@ -333,7 +330,7 @@
                   </>}
                   <div style={{display:"flex",gap:8,marginTop:14}}>
                     <button className="btn-ghost" onClick={()=>setExp(exp===l.id?null:l.id)}>{exp===l.id?"Collapse":"Details"}</button>
-                    <button className="btn-ghost" onClick={()=>{setForm({...l});setEid(l.id);setSf(true);}}>Edit</button>
+                    <button className="btn-ghost" onClick={()=>{setForm({...l,mezzanine:l.mezzanine||""});setEid(l.id);setSf(true);}}>Edit</button>
                     <button className="btn-danger" onClick={()=>del(l.id)}>Delete</button>
                   </div>
                 </div>
