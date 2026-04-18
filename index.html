@@ -52,7 +52,7 @@
     const ADMIN_PW = "alignment2024";
     const HOODS = ["Flatiron","Chelsea","Midtown West","Midtown East","UES","UWS","SoHo","Tribeca","Nomad","Greenwich Village","Lower East Side","Financial District","Hell's Kitchen","Gramercy","Downtown Brooklyn","Williamsburg"];
     const USES = ["Retail","Restaurant","Office","Medical","Fitness","Beauty/Salon","Nail Salon","Japanese Market","Japanese Restaurant","Omakase","Grocery","Bar/Lounge","Pop-up","Gallery","Other"];
-    const BLANK = {neighborhood:"",sqftMin:"",sqftMax:"",useTypes:[],baseRent:"",pricePerSF:"",term:"",freeRent:"",condition:"",highlights:"",landlordContact:"",commission:"",notes:"",status:"Active"};
+    const BLANK = {neighborhood:"",address:"",sqftMin:"",sqftMax:"",useTypes:[],baseRent:"",pricePerSF:"",term:"",freeRent:"",condition:"",highlights:"",landlordContact:"",commission:"",notes:"",status:"Active"};
 
     async function sb(path, opts={}) {
       const r = await fetch(SUPABASE_URL+"/rest/v1"+path, {...opts, headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Content-Type":"application/json","Prefer":"return=representation",...(opts.headers||{})}});
@@ -106,7 +106,7 @@
 
       const filtered = useMemo(()=>listings.filter(l=>{
         if(!q.trim())return true; const s=q.toLowerCase();
-        return (l.neighborhood||"").toLowerCase().includes(s)||(l.useTypes||[]).some(u=>u.toLowerCase().includes(s))||(l.highlights||"").toLowerCase().includes(s)||(l.notes||"").toLowerCase().includes(s)||(l.landlordContact||"").toLowerCase().includes(s);
+        return (l.neighborhood||"").toLowerCase().includes(s)||(l.address||"").toLowerCase().includes(s)||(l.useTypes||[]).some(u=>u.toLowerCase().includes(s))||(l.highlights||"").toLowerCase().includes(s)||(l.notes||"").toLowerCase().includes(s)||(l.landlordContact||"").toLowerCase().includes(s);
       }),[listings,q]);
 
       const clientL = useMemo(()=>listings.filter(l=>{
@@ -204,17 +204,20 @@
                 <button className="btn-gold" onClick={()=>{setForm(BLANK);setEditId(null);setShowForm(!showForm);}}>{showForm?"Cancel":"+ Add Listing"}</button>
               </div>
               <div style={{marginBottom:24,position:"relative"}}>
-                <input className="input" placeholder="Search neighborhood, use, landlord..." value={q} onChange={e=>setQ(e.target.value)} style={{paddingLeft:36}} />
+                <input className="input" placeholder="Search neighborhood, address, use, landlord..." value={q} onChange={e=>setQ(e.target.value)} style={{paddingLeft:36}} />
                 <span style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",color:"#444",fontSize:14,pointerEvents:"none"}}>⌕</span>
                 {q&&<span onClick={()=>setQ("")} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",color:"#555",cursor:"pointer",fontSize:12}}>✕</span>}
               </div>
               {showForm&&<div className="card" style={{marginBottom:24,borderColor:"#2a2a2a"}}>
                 <div style={{fontSize:11,color:"#c8a96e",letterSpacing:"0.15em",textTransform:"uppercase",marginBottom:20}}>{editId?"Edit Listing":"New Listing"}</div>
-                <div className="grid-3" style={{marginBottom:12}}>
+                <div className="grid-2" style={{marginBottom:12}}>
                   <div><label className="label">Neighborhood *</label>
                     <select className="input" value={form.neighborhood} onChange={e=>setForm(f=>({...f,neighborhood:e.target.value}))}>
                       <option value="">Select...</option>{HOODS.map(n=><option key={n}>{n}</option>)}
                     </select></div>
+                  <div><label className="label">Address (Internal Only)</label><input className="input" placeholder="123 W 14th St..." value={form.address} onChange={e=>setForm(f=>({...f,address:e.target.value}))} /></div>
+                </div>
+                <div className="grid-2" style={{marginBottom:12}}>
                   <div><label className="label">SF Min</label><input className="input" type="number" placeholder="1500" value={form.sqftMin} onChange={e=>setForm(f=>({...f,sqftMin:e.target.value}))} /></div>
                   <div><label className="label">SF Max</label><input className="input" type="number" placeholder="2500" value={form.sqftMax} onChange={e=>setForm(f=>({...f,sqftMax:e.target.value}))} /></div>
                 </div>
@@ -251,6 +254,7 @@
                       <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:4,flexWrap:"wrap"}}>
                         <span style={{width:6,height:6,borderRadius:"50%",background:l.status==="Active"?"#4a9e6a":"#444",display:"inline-block"}} />
                         <span style={{fontFamily:"'Playfair Display',serif",fontSize:17,color:"#f0ede6"}}>{l.neighborhood}</span>
+                        {l.address&&<span style={{fontSize:11,color:"#c8a96e"}}>· {l.address}</span>}
                         <span style={{fontSize:11,color:"#444"}}>{(l.sqftMin||0).toLocaleString()}–{(l.sqftMax||0).toLocaleString()} SF</span>
                         <span style={{fontSize:10,color:"#444"}}>{l.status}</span>
                       </div>
@@ -266,6 +270,7 @@
                       {l.condition&&<div className="hl-item"><div className="hl-label">Condition</div><div className="hl-value">{l.condition}</div></div>}
                       {l.commission&&<div className="hl-item"><div className="hl-label">Commission</div><div className="hl-value">{l.commission}</div></div>}
                     </div>
+                    {l.address&&<div style={{fontSize:11,color:"#666",marginBottom:6}}>Address: <span style={{color:"#c8a96e"}}>{l.address}</span></div>}
                     {l.landlordContact&&<div style={{fontSize:11,color:"#666",marginBottom:6}}>Landlord: <span style={{color:"#c8a96e"}}>{l.landlordContact}</span></div>}
                     {l.highlights&&<div style={{fontSize:11,color:"#666",marginBottom:6}}>Highlights: {l.highlights}</div>}
                     {l.notes&&<div style={{fontSize:11,color:"#444",fontStyle:"italic"}}>Notes: {l.notes}</div>}
