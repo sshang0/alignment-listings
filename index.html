@@ -33,6 +33,7 @@
     .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
     .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
     .grid-4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;}
+    .grid-5{display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:12px;}
     .client-card{background:#111;border:1px solid #1e1e1e;padding:28px 32px;margin-bottom:16px;position:relative;overflow:hidden;}
     .client-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#c8a96e,transparent);}
     .code-row{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid #1a1a1a;flex-wrap:wrap;}
@@ -44,8 +45,12 @@
     .feat.yes{border-color:rgba(74,158,106,0.4);color:#4a9e6a;background:rgba(74,158,106,0.08);}
     .feat.no{border-color:rgba(122,48,48,0.4);color:#7a3030;background:rgba(122,48,48,0.08);}
     .feat.possible{border-color:rgba(200,169,110,0.4);color:#c8a96e;background:rgba(200,169,110,0.08);}
+    .filter-section{background:#111;border:1px solid #1e1e1e;padding:16px;margin-bottom:24px;}
+    .filter-title{font-size:10px;color:#c8a96e;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:12px;}
+    .clear-btn{font-size:9px;color:#555;cursor:pointer;letter-spacing:0.1em;text-transform:uppercase;border:none;background:none;font-family:'DM Mono',monospace;}
+    .clear-btn:hover{color:#c8a96e;}
     select.input{appearance:none;}
-    @media(max-width:640px){.grid-2,.grid-3,.grid-4{grid-template-columns:1fr;}}
+    @media(max-width:640px){.grid-2,.grid-3,.grid-4,.grid-5{grid-template-columns:1fr;}}
   </style>
 </head>
 <body>
@@ -58,14 +63,13 @@
     const HOODS = ["Flatiron","Chelsea","Midtown West","Midtown East","UES","UWS","SoHo","Tribeca","Nomad","Greenwich Village","Lower East Side","Financial District","Hell's Kitchen","Gramercy","Downtown Brooklyn","Williamsburg"];
     const USES = ["Retail","Restaurant","Office","Medical","Fitness","Beauty/Salon","Nail Salon","Japanese Market","Japanese Restaurant","Omakase","Grocery","Bar/Lounge","Pop-up","Gallery","Other"];
     const RENTS = [{l:"Under $5,000/mo",a:0,b:5000},{l:"$5,000–$10,000/mo",a:5000,b:10000},{l:"$10,000–$15,000/mo",a:10000,b:15000},{l:"$15,000–$20,000/mo",a:15000,b:20000},{l:"$20,000–$30,000/mo",a:20000,b:30000},{l:"$30,000–$50,000/mo",a:30000,b:50000},{l:"$50,000+/mo",a:50000,b:9999999}];
-    const YNP = ["","Yes","No","Possible"];
-    const YNU = ["","Yes","No","Unknown"];
-    const YN = ["","Yes","No"];
-    const BLANK = {neighborhood:"",address:"",sqftMin:"",sqftMax:"",useTypes:[],baseRent:"",rentAmount:0,pricePerSF:"",term:"",condition:"",highlights:"",notes:"",status:"Active",gas:"",vents:"",whiteBox:"",basement:"",outdoor:"",ada:"",liquor:"",corner:"",ceilingHeight:""};
+    const YNP=["","Yes","No","Possible"];const YNU=["","Yes","No","Unknown"];const YN=["","Yes","No"];
+    const BLANK={neighborhood:"",address:"",sqftMin:"",sqftMax:"",useTypes:[],baseRent:"",rentAmount:0,pricePerSF:"",term:"",condition:"",highlights:"",notes:"",status:"Active",gas:"",vents:"",whiteBox:"",basement:"",outdoor:"",ada:"",liquor:"",corner:"",ceilingHeight:""};
+    const AF_BLANK={n:"",r:"",gas:"",vents:"",whiteBox:"",basement:"",outdoor:"",liquor:"",corner:"",ch:""};
+    const CH_OPTS=["","8 ft or less","9 ft","10 ft","11 ft","12 ft","13 ft","14 ft","15 ft+"];
 
     function pr(s){if(!s)return 0;const n=s.replace(/[^0-9.]/g,"");return n?parseFloat(n):0;}
     async function sb(p,o={}){const r=await fetch(SB_URL+"/rest/v1"+p,{...o,headers:{"apikey":SB_KEY,"Authorization":"Bearer "+SB_KEY,"Content-Type":"application/json","Prefer":"return=representation",...(o.headers||{})}});const t=await r.text();return t?JSON.parse(t):null;}
-
     function FB({label,value}){if(!value)return null;const c=value==="Yes"?"yes":value==="No"?"no":"possible";return <span className={"feat "+c}>{label}: {value}</span>;}
 
     function App(){
@@ -78,8 +82,9 @@
       const [q,setQ]=useState("");const [exp,setExp]=useState(null);
       const [form,setForm]=useState(BLANK);
       const [cf,setCf]=useState({n:"",s:"",u:"",r:""});
-      const [af,setAf]=useState({n:"",r:""});
+      const [af,setAf]=useState(AF_BLANK);
       const [msg,setMsg]=useState("");
+      const [showFilters,setShowFilters]=useState(false);
 
       const ldL=async()=>{try{const r=await sb("/listings?order=id.desc");setLs((r||[]).map(x=>({...x.data,id:x.id})));}catch(e){}};
       const ldC=async()=>{try{const r=await sb("/access_codes?order=id.desc");setCodes(r||[]);}catch(e){}};
@@ -105,10 +110,28 @@
 
       function rentMatch(l,ri){if(!ri&&ri!==0)return true;const rng=RENTS[parseInt(ri)];if(!rng)return true;const rent=l.rentAmount||pr(l.baseRent);return rent>=rng.a&&rent<rng.b;}
       function sizeMatch(l,s){if(!s)return true;const[min,max]=s.split("-").map(Number);return!((l.sqftMin||0)>max||(l.sqftMax||0)<min);}
+      function featMatch(val,filter){if(!filter)return true;return val===filter;}
+      function chMatch(l,filter){
+        if(!filter)return true;
+        const h=parseFloat(l.ceilingHeight)||0;
+        if(filter==="8 ft or less")return h>0&&h<=8;
+        if(filter==="15 ft+")return h>=15;
+        const ft=parseInt(filter);return h>=ft&&h<ft+1;
+      }
+
+      const activeFilterCount=Object.values(af).filter(v=>v).length;
 
       const filt=useMemo(()=>ls.filter(l=>{
         if(af.n&&l.neighborhood!==af.n)return false;
         if(af.r&&!rentMatch(l,af.r))return false;
+        if(af.gas&&!featMatch(l.gas,af.gas))return false;
+        if(af.vents&&!featMatch(l.vents,af.vents))return false;
+        if(af.whiteBox&&!featMatch(l.whiteBox,af.whiteBox))return false;
+        if(af.basement&&!featMatch(l.basement,af.basement))return false;
+        if(af.outdoor&&!featMatch(l.outdoor,af.outdoor))return false;
+        if(af.liquor&&!featMatch(l.liquor,af.liquor))return false;
+        if(af.corner&&!featMatch(l.corner,af.corner))return false;
+        if(af.ch&&!chMatch(l,af.ch))return false;
         if(!q.trim())return true;const s=q.toLowerCase();
         return(l.neighborhood||"").toLowerCase().includes(s)||(l.address||"").toLowerCase().includes(s)||(l.useTypes||[]).some(u=>u.toLowerCase().includes(s))||(l.highlights||"").toLowerCase().includes(s)||(l.notes||"").toLowerCase().includes(s);
       }),[ls,q,af]);
@@ -123,6 +146,7 @@
       }),[ls,cf]);
 
       const S=(k,v)=>setForm(f=>({...f,[k]:v}));
+      const A=(k,v)=>setAf(f=>({...f,[k]:v}));
 
       if(page==="login")return(
         <div style={{background:"#0e0e0e",minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:24,color:"#f0ede6"}}>
@@ -156,7 +180,7 @@
               <div><label className="label">Neighborhood</label><select className="input" value={cf.n} onChange={e=>setCf(f=>({...f,n:e.target.value}))}><option value="">All Areas</option>{HOODS.map(n=><option key={n}>{n}</option>)}</select></div>
               <div><label className="label">Size</label><select className="input" value={cf.s} onChange={e=>setCf(f=>({...f,s:e.target.value}))}><option value="">Any Size</option><option value="0-1000">Under 1,000 SF</option><option value="1000-2000">1,000–2,000 SF</option><option value="2000-3000">2,000–3,000 SF</option><option value="3000-5000">3,000–5,000 SF</option><option value="5000-99999">5,000+ SF</option></select></div>
               <div><label className="label">Use</label><select className="input" value={cf.u} onChange={e=>setCf(f=>({...f,u:e.target.value}))}><option value="">All Uses</option>{USES.map(u=><option key={u}>{u}</option>)}</select></div>
-              <div><label className="label">Rent Range</label><select className="input" value={cf.r} onChange={e=>setCf(f=>({...f,r:e.target.value}))}><option value="">Any Price</option>{RENTS.map((r,i)=><option key={i} value={i}>{r.l}</option>)}</select></div>
+              <div><label className="label">Rent</label><select className="input" value={cf.r} onChange={e=>setCf(f=>({...f,r:e.target.value}))}><option value="">Any Price</option>{RENTS.map((r,i)=><option key={i} value={i}>{r.l}</option>)}</select></div>
             </div>
             {cList.length===0&&<div style={{textAlign:"center",padding:"60px 0",color:"#333",fontSize:12}}>No matching spaces.</div>}
             {cList.map(l=>(
@@ -169,13 +193,9 @@
                   </div>
                   <div style={{textAlign:"right"}}><div style={{fontSize:10,color:"#444",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:4}}>Asking Rent</div><div style={{color:"#c8a96e",fontSize:14}}>Contact for pricing</div></div>
                 </div>
-                <div style={{marginTop:12}}>
-                  <FB label="Gas" value={l.gas}/><FB label="Vents" value={l.vents}/><FB label="White Box" value={l.whiteBox}/><FB label="Basement" value={l.basement}/><FB label="Outdoor" value={l.outdoor}/><FB label="ADA" value={l.ada}/><FB label="Liquor License" value={l.liquor}/><FB label="Corner" value={l.corner}/>
-                </div>
+                <div style={{marginTop:12}}><FB label="Gas" value={l.gas}/><FB label="Vents" value={l.vents}/><FB label="White Box" value={l.whiteBox}/><FB label="Basement" value={l.basement}/><FB label="Outdoor" value={l.outdoor}/><FB label="ADA" value={l.ada}/><FB label="Liquor License" value={l.liquor}/><FB label="Corner" value={l.corner}/></div>
                 {l.highlights&&<div style={{marginTop:12,fontSize:12,color:"#777",lineHeight:1.7}}>{l.highlights}</div>}
-                <div style={{marginTop:20,paddingTop:16,borderTop:"1px solid #1e1e1e"}}>
-                  <a href="mailto:Shiyuns@alignmentny.com" style={{textDecoration:"none"}}><button className="btn-gold">Inquire About This Space</button></a>
-                </div>
+                <div style={{marginTop:20,paddingTop:16,borderTop:"1px solid #1e1e1e"}}><a href="mailto:Shiyuns@alignmentny.com" style={{textDecoration:"none"}}><button className="btn-gold">Inquire About This Space</button></a></div>
               </div>
             ))}
             <div style={{marginTop:40,paddingTop:20,borderTop:"1px solid #1a1a1a",fontSize:11,color:"#333"}}>Alignment RE LLC · 153 W 27th St, Office 700 · NY 10001 · <span style={{color:"#c8a96e"}}>Shiyuns@alignmentny.com</span></div>
@@ -197,7 +217,7 @@
           <div style={{maxWidth:960,margin:"0 auto",padding:"32px 24px"}}>
             {tab==="listings"&&<>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-                <div style={{fontSize:12,color:"#555"}}><span style={{color:"#c8a96e"}}>{ls.filter(l=>l.status==="Active").length}</span> active</div>
+                <div style={{fontSize:12,color:"#555"}}><span style={{color:"#c8a96e"}}>{ls.filter(l=>l.status==="Active").length}</span> active · {filt.length} showing</div>
                 <button className="btn-gold" onClick={()=>{setForm(BLANK);setEid(null);setSf(!sf);}}>{sf?"Cancel":"+ Add Listing"}</button>
               </div>
               <div style={{marginBottom:12,position:"relative"}}>
@@ -205,9 +225,34 @@
                 <span style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",color:"#444",fontSize:14,pointerEvents:"none"}}>⌕</span>
                 {q&&<span onClick={()=>setQ("")} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",color:"#555",cursor:"pointer",fontSize:12}}>✕</span>}
               </div>
-              <div className="grid-2" style={{marginBottom:24}}>
-                <div><label className="label">Filter Neighborhood</label><select className="input" value={af.n} onChange={e=>setAf(f=>({...f,n:e.target.value}))}><option value="">All</option>{HOODS.map(n=><option key={n}>{n}</option>)}</select></div>
-                <div><label className="label">Filter Rent</label><select className="input" value={af.r} onChange={e=>setAf(f=>({...f,r:e.target.value}))}><option value="">Any Price</option>{RENTS.map((r,i)=><option key={i} value={i}>{r.l}</option>)}</select></div>
+
+              <div className="filter-section">
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:showFilters?12:0}}>
+                  <div style={{display:"flex",alignItems:"center",gap:10}}>
+                    <span className="filter-title" style={{marginBottom:0,cursor:"pointer"}} onClick={()=>setShowFilters(!showFilters)}>Filters {showFilters?"▲":"▼"}</span>
+                    {activeFilterCount>0&&<span style={{fontSize:10,color:"#c8a96e"}}>{activeFilterCount} active</span>}
+                  </div>
+                  {activeFilterCount>0&&<button className="clear-btn" onClick={()=>setAf(AF_BLANK)}>Clear All</button>}
+                </div>
+                {showFilters&&<>
+                  <div className="grid-4" style={{marginBottom:12}}>
+                    <div><label className="label">Neighborhood</label><select className="input" value={af.n} onChange={e=>A("n",e.target.value)}><option value="">All</option>{HOODS.map(n=><option key={n}>{n}</option>)}</select></div>
+                    <div><label className="label">Rent</label><select className="input" value={af.r} onChange={e=>A("r",e.target.value)}><option value="">Any Price</option>{RENTS.map((r,i)=><option key={i} value={i}>{r.l}</option>)}</select></div>
+                    <div><label className="label">Gas</label><select className="input" value={af.gas} onChange={e=>A("gas",e.target.value)}><option value="">Any</option><option>Yes</option><option>No</option><option>Possible</option></select></div>
+                    <div><label className="label">Vents</label><select className="input" value={af.vents} onChange={e=>A("vents",e.target.value)}><option value="">Any</option><option>Yes</option><option>No</option><option>Possible</option></select></div>
+                  </div>
+                  <div className="grid-4" style={{marginBottom:12}}>
+                    <div><label className="label">White Box</label><select className="input" value={af.whiteBox} onChange={e=>A("whiteBox",e.target.value)}><option value="">Any</option><option>Yes</option><option>No</option></select></div>
+                    <div><label className="label">Basement</label><select className="input" value={af.basement} onChange={e=>A("basement",e.target.value)}><option value="">Any</option><option>Yes</option><option>No</option></select></div>
+                    <div><label className="label">Outdoor Space</label><select className="input" value={af.outdoor} onChange={e=>A("outdoor",e.target.value)}><option value="">Any</option><option>Yes</option><option>No</option></select></div>
+                    <div><label className="label">Liquor License</label><select className="input" value={af.liquor} onChange={e=>A("liquor",e.target.value)}><option value="">Any</option><option>Yes</option><option>No</option><option>Unknown</option></select></div>
+                  </div>
+                  <div className="grid-4">
+                    <div><label className="label">Corner Unit</label><select className="input" value={af.corner} onChange={e=>A("corner",e.target.value)}><option value="">Any</option><option>Yes</option><option>No</option></select></div>
+                    <div><label className="label">Ceiling Height</label><select className="input" value={af.ch} onChange={e=>A("ch",e.target.value)}><option value="">Any</option>{CH_OPTS.filter(v=>v).map(v=><option key={v}>{v}</option>)}</select></div>
+                    <div></div><div></div>
+                  </div>
+                </>}
               </div>
 
               {sf&&<div className="card" style={{marginBottom:24,borderColor:"#2a2a2a"}}>
@@ -230,7 +275,6 @@
                   <div><label className="label">Term</label><input className="input" placeholder="10 years" value={form.term} onChange={e=>S("term",e.target.value)} /></div>
                   <div><label className="label">Condition</label><input className="input" placeholder="As-is, turnkey..." value={form.condition} onChange={e=>S("condition",e.target.value)} /></div>
                 </div>
-
                 <div style={{borderTop:"1px solid #1a1a1a",paddingTop:16,marginBottom:12}}>
                   <div style={{fontSize:10,color:"#c8a96e",letterSpacing:"0.15em",textTransform:"uppercase",marginBottom:12}}>Space Features</div>
                   <div className="grid-3" style={{marginBottom:12}}>
@@ -249,7 +293,6 @@
                     <div></div>
                   </div>
                 </div>
-
                 <div style={{marginBottom:12}}><label className="label">Client Highlights</label><input className="input" placeholder="Corner unit, high foot traffic..." value={form.highlights} onChange={e=>S("highlights",e.target.value)} /></div>
                 <div style={{borderTop:"1px solid #1a1a1a",paddingTop:16,marginBottom:12}}>
                   <div style={{fontSize:10,color:"#c8a96e",letterSpacing:"0.15em",textTransform:"uppercase",marginBottom:12}}>Internal Only</div>
@@ -274,9 +317,7 @@
                         <span style={{fontSize:10,color:"#444"}}>{l.status}</span>
                       </div>
                       {(l.useTypes||[]).map(u=><span key={u} className="tag sel" style={{cursor:"default"}}>{u}</span>)}
-                      <div style={{marginTop:6}}>
-                        <FB label="Gas" value={l.gas}/><FB label="Vents" value={l.vents}/><FB label="WB" value={l.whiteBox}/><FB label="Bsmt" value={l.basement}/><FB label="Outdoor" value={l.outdoor}/><FB label="ADA" value={l.ada}/><FB label="Liquor" value={l.liquor}/><FB label="Corner" value={l.corner}/>
-                      </div>
+                      <div style={{marginTop:6}}><FB label="Gas" value={l.gas}/><FB label="Vents" value={l.vents}/><FB label="WB" value={l.whiteBox}/><FB label="Bsmt" value={l.basement}/><FB label="Outdoor" value={l.outdoor}/><FB label="ADA" value={l.ada}/><FB label="Liquor" value={l.liquor}/><FB label="Corner" value={l.corner}/></div>
                     </div>
                     <div style={{textAlign:"right"}}><div style={{color:"#c8a96e",fontSize:14}}>{l.baseRent}</div><div style={{color:"#444",fontSize:11}}>{l.pricePerSF}</div></div>
                   </div>
