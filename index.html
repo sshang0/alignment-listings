@@ -63,13 +63,14 @@
     const USES=["Retail","Restaurant","Coffee","Bubble Tea","Office","Medical","Fitness","Beauty/Salon","Nail Salon","Japanese Market","Japanese Restaurant","Omakase","Grocery","Bar/Lounge","Pop-up","Gallery","Other"];
     const RENTS=[{l:"Under $5,000/mo",a:0,b:5000},{l:"$5,000–$10,000/mo",a:5000,b:10000},{l:"$10,000–$15,000/mo",a:10000,b:15000},{l:"$15,000–$20,000/mo",a:15000,b:20000},{l:"$20,000–$30,000/mo",a:20000,b:30000},{l:"$30,000–$50,000/mo",a:30000,b:50000},{l:"$50,000+/mo",a:50000,b:9999999}];
     const YNP=["","Yes","No","Possible"];const YNU=["","Yes","No","Unknown"];const YN=["","Yes","No"];
-    const BLANK={neighborhood:"",address:"",sqftMin:"",sqftMax:"",mezzanine:"",useTypes:[],baseRent:"",rentAmount:0,pricePerSF:"",term:"",condition:"",highlights:"",notes:"",status:"Active",gas:"",vents:"",whiteBox:"",basement:"",outdoor:"",ada:"",liquor:"",corner:"",ceilingHeight:""};
+    const BLANK={neighborhood:"",address:"",floor:"",sqftMin:"",sqftMax:"",mezzanine:"",useTypes:[],baseRent:"",rentAmount:0,pricePerSF:"",term:"",highlights:"",notes:"",status:"Active",gas:"",vents:"",whiteBox:"",basement:"",outdoor:"",ada:"",liquor:"",corner:"",ceilingHeight:""};
     const AF_BLANK={n:"",r:"",gas:"",vents:"",whiteBox:"",basement:"",outdoor:"",liquor:"",corner:"",ch:""};
+    const WB_OPTS=["","White Box","As-is","Turnkey"];
     const CH_OPTS=["","8 ft or less","9 ft","10 ft","11 ft","12 ft","13 ft","14 ft","15 ft+"];
 
     function pr(s){if(!s)return 0;const n=s.replace(/[^0-9.]/g,"");return n?parseFloat(n):0;}
     async function sb(p,o={}){const r=await fetch(SB_URL+"/rest/v1"+p,{...o,headers:{"apikey":SB_KEY,"Authorization":"Bearer "+SB_KEY,"Content-Type":"application/json","Prefer":"return=representation",...(o.headers||{})}});const t=await r.text();return t?JSON.parse(t):null;}
-    function FB({label,value}){if(!value)return null;const c=value==="Yes"?"yes":value==="No"?"no":"possible";return <span className={"feat "+c}>{label}: {value}</span>;}
+    function FB({label,value}){if(!value)return null;const c=value==="Yes"||value==="White Box"||value==="Turnkey"?"yes":value==="No"?"no":"possible";return <span className={"feat "+c}>{label}: {value}</span>;}
 
     function App(){
       const [page,setPage]=useState("login");
@@ -239,7 +240,7 @@
                     <div><label className="label">Vents</label><select className="input" value={af.vents} onChange={e=>A("vents",e.target.value)}><option value="">Any</option><option>Yes</option><option>No</option><option>Possible</option></select></div>
                   </div>
                   <div className="grid-4" style={{marginBottom:12}}>
-                    <div><label className="label">White Box</label><select className="input" value={af.whiteBox} onChange={e=>A("whiteBox",e.target.value)}><option value="">Any</option><option>Yes</option><option>No</option></select></div>
+                    <div><label className="label">Condition</label><select className="input" value={af.whiteBox} onChange={e=>A("whiteBox",e.target.value)}><option value="">Any</option><option>White Box</option><option>As-is</option><option>Turnkey</option></select></div>
                     <div><label className="label">Basement</label><select className="input" value={af.basement} onChange={e=>A("basement",e.target.value)}><option value="">Any</option><option>Yes</option><option>No</option></select></div>
                     <div><label className="label">Outdoor Space</label><select className="input" value={af.outdoor} onChange={e=>A("outdoor",e.target.value)}><option value="">Any</option><option>Yes</option><option>No</option></select></div>
                     <div><label className="label">Liquor License</label><select className="input" value={af.liquor} onChange={e=>A("liquor",e.target.value)}><option value="">Any</option><option>Yes</option><option>No</option><option>Unknown</option></select></div>
@@ -254,9 +255,10 @@
 
               {sf&&<div className="card" style={{marginBottom:24,borderColor:"#2a2a2a"}}>
                 <div style={{fontSize:11,color:"#c8a96e",letterSpacing:"0.15em",textTransform:"uppercase",marginBottom:20}}>{eid?"Edit Listing":"New Listing"}</div>
-                <div className="grid-2" style={{marginBottom:12}}>
+                <div className="grid-3" style={{marginBottom:12}}>
                   <div><label className="label">Neighborhood *</label><select className="input" value={form.neighborhood} onChange={e=>S("neighborhood",e.target.value)}><option value="">Select...</option>{HOODS.map(n=><option key={n}>{n}</option>)}</select></div>
                   <div><label className="label">Address (Internal Only)</label><input className="input" placeholder="123 W 14th St..." value={form.address} onChange={e=>S("address",e.target.value)} /></div>
+                  <div><label className="label">Floor</label><input className="input" placeholder="Ground, 2nd, 3rd..." value={form.floor} onChange={e=>S("floor",e.target.value)} /></div>
                 </div>
                 <div className="grid-4" style={{marginBottom:12}}>
                   <div><label className="label">SF Min *</label><input className="input" type="number" placeholder="1500" value={form.sqftMin} onChange={e=>S("sqftMin",e.target.value)} /></div>
@@ -269,16 +271,15 @@
                   <div><label className="label">Base Rent</label><input className="input" placeholder="$20,000/mo" value={form.baseRent} onChange={e=>S("baseRent",e.target.value)} /></div>
                   <div><label className="label">Price/SF</label><input className="input" placeholder="$120/SF" value={form.pricePerSF} onChange={e=>S("pricePerSF",e.target.value)} /></div>
                 </div>
-                <div className="grid-2" style={{marginBottom:12}}>
+                <div style={{marginBottom:12}}>
                   <div><label className="label">Term</label><input className="input" placeholder="10 years" value={form.term} onChange={e=>S("term",e.target.value)} /></div>
-                  <div><label className="label">Condition</label><input className="input" placeholder="As-is, turnkey..." value={form.condition} onChange={e=>S("condition",e.target.value)} /></div>
                 </div>
                 <div style={{borderTop:"1px solid #1a1a1a",paddingTop:16,marginBottom:12}}>
                   <div style={{fontSize:10,color:"#c8a96e",letterSpacing:"0.15em",textTransform:"uppercase",marginBottom:12}}>Space Features</div>
                   <div className="grid-3" style={{marginBottom:12}}>
                     <div><label className="label">Gas</label><select className="input" value={form.gas} onChange={e=>S("gas",e.target.value)}>{YNP.map(v=><option key={v} value={v}>{v||"Select..."}</option>)}</select></div>
                     <div><label className="label">Vents</label><select className="input" value={form.vents} onChange={e=>S("vents",e.target.value)}>{YNP.map(v=><option key={v} value={v}>{v||"Select..."}</option>)}</select></div>
-                    <div><label className="label">White Box</label><select className="input" value={form.whiteBox} onChange={e=>S("whiteBox",e.target.value)}>{YN.map(v=><option key={v} value={v}>{v||"Select..."}</option>)}</select></div>
+                    <div><label className="label">Condition</label><select className="input" value={form.whiteBox} onChange={e=>S("whiteBox",e.target.value)}>{WB_OPTS.map(v=><option key={v} value={v}>{v||"Select..."}</option>)}</select></div>
                   </div>
                   <div className="grid-3" style={{marginBottom:12}}>
                     <div><label className="label">Basement</label><select className="input" value={form.basement} onChange={e=>S("basement",e.target.value)}>{YN.map(v=><option key={v} value={v}>{v||"Select..."}</option>)}</select></div>
@@ -309,7 +310,8 @@
                       <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:4,flexWrap:"wrap"}}>
                         <span style={{width:6,height:6,borderRadius:"50%",background:l.status==="Active"?"#4a9e6a":"#444",display:"inline-block"}} />
                         <span style={{fontFamily:"'Playfair Display',serif",fontSize:17,color:"#f0ede6"}}>{l.neighborhood}</span>
-                        {l.address&&<span style={{fontSize:11,color:"#c8a96e"}}>· {l.address}</span>}
+                        {l.address&&<span style={{fontSize:14,color:"#c8a96e",fontWeight:500}}>· {l.address}</span>}
+                        {l.floor&&<span style={{fontSize:11,color:"#888"}}>Floor: {l.floor}</span>}
                         <span style={{fontSize:11,color:"#444"}}>{sfInfo(l)}</span>
                         <span style={{fontSize:10,color:"#444"}}>{l.status}</span>
                       </div>
@@ -322,7 +324,7 @@
                     <div style={{borderTop:"1px solid #1a1a1a",margin:"16px 0"}} />
                     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12}}>
                       {l.term&&<div className="hl-item"><div className="hl-label">Term</div><div className="hl-value">{l.term}</div></div>}
-                      {l.condition&&<div className="hl-item"><div className="hl-label">Condition</div><div className="hl-value">{l.condition}</div></div>}
+                      {l.floor&&<div className="hl-item"><div className="hl-label">Floor</div><div className="hl-value">{l.floor}</div></div>}
                     </div>
                     {l.address&&<div style={{fontSize:11,color:"#666",marginBottom:6}}>Address: <span style={{color:"#c8a96e"}}>{l.address}</span></div>}
                     {l.highlights&&<div style={{fontSize:11,color:"#666",marginBottom:6}}>Highlights: {l.highlights}</div>}
