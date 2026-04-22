@@ -63,8 +63,8 @@
     const USES=["Retail","Restaurant","Coffee","Bubble Tea","Office","Medical","Fitness","Beauty/Salon","Nail Salon","Japanese Market","Japanese Restaurant","Omakase","Grocery","Bar/Lounge","Pop-up","Gallery","Other"];
     const RENTS=[{l:"Under $5,000/mo",a:0,b:5000},{l:"$5,000–$10,000/mo",a:5000,b:10000},{l:"$10,000–$15,000/mo",a:10000,b:15000},{l:"$15,000–$20,000/mo",a:15000,b:20000},{l:"$20,000–$30,000/mo",a:20000,b:30000},{l:"$30,000–$50,000/mo",a:30000,b:50000},{l:"$50,000+/mo",a:50000,b:9999999}];
     const YNP=["","Yes","No","Possible"];const YNU=["","Yes","No","Unknown"];const YN=["","Yes","No"];
-    const BLANK={neighborhood:"",address:"",floor:"",sqftMin:"",sqftMax:"",mezzanine:"",useTypes:[],baseRent:"",rentAmount:0,pricePerSF:"",term:"",highlights:"",notes:"",status:"Active",gas:"",vents:"",whiteBox:"",basement:"",outdoor:"",ada:"",liquor:"",corner:"",ceilingHeight:""};
-    const AF_BLANK={n:"",r:"",gas:"",vents:"",whiteBox:"",basement:"",outdoor:"",liquor:"",corner:"",ch:""};
+    const BLANK={neighborhood:"",address:"",floor:"",sqftMin:"",sqftMax:"",mezzanine:"",useTypes:[],baseRent:"",rentAmount:0,pricePerSF:"",term:"",highlights:"",notes:"",status:"Active",gas:"",vents:"",whiteBox:"",basement:"",outdoor:"",ada:"",liquor:"",corner:"",ceilingHeight:"",selfTour:""};
+    const AF_BLANK={n:"",r:"",gas:"",vents:"",whiteBox:"",basement:"",outdoor:"",liquor:"",corner:"",ch:"",floor:"",selfTour:""};
     const WB_OPTS=["","White Box","As-is","Turnkey"];
     const CH_OPTS=["","8 ft or less","9 ft","10 ft","11 ft","12 ft","13 ft","14 ft","15 ft+"];
 
@@ -110,6 +110,7 @@
       function sizeMatch(l,s){if(!s)return true;const[min,max]=s.split("-").map(Number);return!((l.sqftMin||0)>max||(l.sqftMax||0)<min);}
       function featMatch(val,filter){if(!filter)return true;return val===filter;}
       function chMatch(l,filter){if(!filter)return true;const h=parseFloat(l.ceilingHeight)||0;if(filter==="8 ft or less")return h>0&&h<=8;if(filter==="15 ft+")return h>=15;const ft=parseInt(filter);return h>=ft&&h<ft+1;}
+      function floorMatch(l,filter){if(!filter)return true;const f=(l.floor||"").toLowerCase().trim();if(filter==="Ground")return f==="ground"||f==="g"||f==="1st"||f==="1";if(filter==="2nd")return f==="2nd"||f==="2";if(filter==="3rd")return f==="3rd"||f==="3";if(filter==="3rd+"){const n=parseInt(f);return n>=3;}return true;}
 
       const activeFilterCount=Object.values(af).filter(v=>v).length;
 
@@ -124,6 +125,8 @@
         if(af.liquor&&!featMatch(l.liquor,af.liquor))return false;
         if(af.corner&&!featMatch(l.corner,af.corner))return false;
         if(af.ch&&!chMatch(l,af.ch))return false;
+        if(af.floor&&!floorMatch(l,af.floor))return false;
+        if(af.selfTour&&l.selfTour!==af.selfTour)return false;
         if(!q.trim())return true;const s=q.toLowerCase();
         return(l.neighborhood||"").toLowerCase().includes(s)||(l.address||"").toLowerCase().includes(s)||(l.useTypes||[]).some(u=>u.toLowerCase().includes(s))||(l.highlights||"").toLowerCase().includes(s)||(l.notes||"").toLowerCase().includes(s);
       }),[ls,q,af]);
@@ -192,7 +195,7 @@
                   </div>
                   <div style={{textAlign:"right"}}><div style={{fontSize:10,color:"#444",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:4}}>Asking Rent</div><div style={{color:"#c8a96e",fontSize:14}}>Contact for pricing</div></div>
                 </div>
-                <div style={{marginTop:12}}><FB label="Gas" value={l.gas}/><FB label="Vents" value={l.vents}/><FB label="White Box" value={l.whiteBox}/><FB label="Basement" value={l.basement}/><FB label="Outdoor" value={l.outdoor}/><FB label="ADA" value={l.ada}/><FB label="Liquor License" value={l.liquor}/><FB label="Corner" value={l.corner}/></div>
+                <div style={{marginTop:12}}><FB label="Gas" value={l.gas}/><FB label="Vents" value={l.vents}/><FB label="White Box" value={l.whiteBox}/><FB label="Basement" value={l.basement}/><FB label="Outdoor" value={l.outdoor}/><FB label="ADA" value={l.ada}/><FB label="Liquor License" value={l.liquor}/><FB label="Corner" value={l.corner}/><FB label="Self Tour" value={l.selfTour}/></div>
                 {l.highlights&&<div style={{marginTop:12,fontSize:12,color:"#777",lineHeight:1.7}}>{l.highlights}</div>}
                 <div style={{marginTop:20,paddingTop:16,borderTop:"1px solid #1e1e1e"}}><a href="mailto:Shiyuns@alignmentny.com" style={{textDecoration:"none"}}><button className="btn-gold">Inquire About This Space</button></a></div>
               </div>
@@ -248,7 +251,8 @@
                   <div className="grid-4">
                     <div><label className="label">Corner Unit</label><select className="input" value={af.corner} onChange={e=>A("corner",e.target.value)}><option value="">Any</option><option>Yes</option><option>No</option></select></div>
                     <div><label className="label">Ceiling Height</label><select className="input" value={af.ch} onChange={e=>A("ch",e.target.value)}><option value="">Any</option>{CH_OPTS.filter(v=>v).map(v=><option key={v}>{v}</option>)}</select></div>
-                    <div></div><div></div>
+                    <div><label className="label">Floor</label><select className="input" value={af.floor} onChange={e=>A("floor",e.target.value)}><option value="">Any</option><option>Ground</option><option>2nd</option><option>3rd</option><option>3rd+</option></select></div>
+                    <div><label className="label">Self Tour</label><select className="input" value={af.selfTour} onChange={e=>A("selfTour",e.target.value)}><option value="">Any</option><option>Yes</option><option>No</option></select></div>
                   </div>
                 </>}
               </div>
@@ -289,7 +293,7 @@
                   <div className="grid-3" style={{marginBottom:12}}>
                     <div><label className="label">Liquor License</label><select className="input" value={form.liquor} onChange={e=>S("liquor",e.target.value)}>{YNU.map(v=><option key={v} value={v}>{v||"Select..."}</option>)}</select></div>
                     <div><label className="label">Corner Unit</label><select className="input" value={form.corner} onChange={e=>S("corner",e.target.value)}>{YN.map(v=><option key={v} value={v}>{v||"Select..."}</option>)}</select></div>
-                    <div></div>
+                    <div><label className="label">Self Tour</label><select className="input" value={form.selfTour} onChange={e=>S("selfTour",e.target.value)}>{YN.map(v=><option key={v} value={v}>{v||"Select..."}</option>)}</select></div>
                   </div>
                 </div>
                 <div style={{marginBottom:12}}><label className="label">Client Highlights</label><input className="input" placeholder="Corner unit, high foot traffic..." value={form.highlights} onChange={e=>S("highlights",e.target.value)} /></div>
@@ -316,7 +320,7 @@
                         <span style={{fontSize:10,color:"#444"}}>{l.status}</span>
                       </div>
                       {(l.useTypes||[]).map(u=><span key={u} className="tag sel" style={{cursor:"default"}}>{u}</span>)}
-                      <div style={{marginTop:6}}><FB label="Gas" value={l.gas}/><FB label="Vents" value={l.vents}/><FB label="WB" value={l.whiteBox}/><FB label="Bsmt" value={l.basement}/><FB label="Outdoor" value={l.outdoor}/><FB label="ADA" value={l.ada}/><FB label="Liquor" value={l.liquor}/><FB label="Corner" value={l.corner}/></div>
+                      <div style={{marginTop:6}}><FB label="Gas" value={l.gas}/><FB label="Vents" value={l.vents}/><FB label="WB" value={l.whiteBox}/><FB label="Bsmt" value={l.basement}/><FB label="Outdoor" value={l.outdoor}/><FB label="ADA" value={l.ada}/><FB label="Liquor" value={l.liquor}/><FB label="Corner" value={l.corner}/><FB label="Self Tour" value={l.selfTour}/></div>
                     </div>
                     <div style={{textAlign:"right"}}><div style={{color:"#c8a96e",fontSize:14}}>{l.baseRent}</div><div style={{color:"#444",fontSize:11}}>{l.pricePerSF}</div></div>
                   </div>
