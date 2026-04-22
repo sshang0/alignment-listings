@@ -237,7 +237,7 @@
               <div key={l.id} className="client-card">
                 <div style={{display:"flex",justifyContent:"space-between",flexWrap:"wrap",gap:12}}>
                   <div>
-                    <div style={{fontFamily:"'Playfair Display',serif",fontSize:20,color:"#f0ede6",marginBottom:6}}>{l.neighborhood} Area</div>
+                    <div style={{fontFamily:"'Playfair Display',serif",fontSize:20,color:"var(--text)",marginBottom:6}}>{l.neighborhood} Area</div>
                     <div style={{fontSize:12,color:"#555",marginBottom:10}}>{sfInfo(l)}</div>
                     {(l.useTypes||[]).map(u=><span key={u} className="tag sel" style={{cursor:"default"}}>{u}</span>)}
                   </div>
@@ -369,7 +369,7 @@
                     <div>
                       <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:4,flexWrap:"wrap"}}>
                         <span style={{width:6,height:6,borderRadius:"50%",background:l.status==="Active"?"#4a9e6a":"#444",display:"inline-block"}} />
-                        <span style={{fontFamily:"'Playfair Display',serif",fontSize:17,color:"#f0ede6"}}>{l.neighborhood}</span>
+                        <span style={{fontFamily:"'Playfair Display',serif",fontSize:17,color:"var(--text)"}}>{l.neighborhood}</span>
                         {l.address&&<span style={{fontSize:14,color:"#c8a96e",fontWeight:500}}>· {l.address}</span>}
                         {l.floor&&<span style={{fontSize:11,color:"#888"}}>Floor: {l.floor}</span>}
                         <span style={{fontSize:11,color:"#444"}}>{sfInfo(l)}</span>
