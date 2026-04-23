@@ -107,15 +107,17 @@
     const USES=["Retail","Restaurant","Coffee","Bubble Tea","Office","Medical","Fitness","Beauty/Salon","Nail Salon","Japanese Market","Japanese Restaurant","Omakase","Grocery","Bar/Lounge","Pop-up","Gallery","Other"];
     const RENTS=[{l:"Under $5,000/mo",a:0,b:5000},{l:"$5,000–$10,000/mo",a:5000,b:10000},{l:"$10,000–$15,000/mo",a:10000,b:15000},{l:"$15,000–$20,000/mo",a:15000,b:20000},{l:"$20,000–$30,000/mo",a:20000,b:30000},{l:"$30,000–$50,000/mo",a:30000,b:50000},{l:"$50,000+/mo",a:50000,b:9999999}];
     const YNP=["","Yes","No","Possible"];const YNU=["","Yes","No","Unknown"];const YN=["","Yes","No"];
-    const BLANK={neighborhood:"",address:"",floor:"",sqftMin:"",sqftMax:"",mezzanine:"",frontage:"",useTypes:[],baseRent:"",rentAmount:0,pricePerSF:"",term:"",highlights:"",notes:"",status:"Active",gas:"",vents:"",whiteBox:"",basement:"",outdoor:"",ada:"",liquor:"",corner:"",ceilingHeight:"",selfTour:""};
+    const BLANK={neighborhood:"",address:"",floor:"",sqftMin:"",sqftMax:"",mezzanine:"",frontage:"",useTypes:[],baseRent:"",rentAmount:0,pricePerSF:"",term:"",highlights:"",notes:"",status:"Active",gas:"",vents:"",whiteBox:"",basement:"",basementSf:"",outdoor:"",ada:"",liquor:"",corner:"",ceilingHeight:"",selfTour:""};
     const AF_BLANK={n:"",r:"",gas:"",vents:"",whiteBox:"",basement:"",outdoor:"",liquor:"",corner:"",ch:"",floor:"",selfTour:"",fr:""};
     const WB_OPTS=["","White Box","As-is","Turnkey"];
+    const VENTS_OPTS=["","Type 1","Type 2","Black Iron","No"];
     const CH_OPTS=["","8 ft or less","9 ft","10 ft","11 ft","12 ft","13 ft","14 ft","15 ft+"];
     const FR_OPTS=["","Under 20 ft","20–50 ft","50–80 ft","80–100 ft","100 ft+"];
 
     function pr(s){if(!s)return 0;const n=s.replace(/[^0-9.]/g,"");return n?parseFloat(n):0;}
     async function sb(p,o={}){const r=await fetch(SB_URL+"/rest/v1"+p,{...o,headers:{"apikey":SB_KEY,"Authorization":"Bearer "+SB_KEY,"Content-Type":"application/json","Prefer":"return=representation",...(o.headers||{})}});const t=await r.text();return t?JSON.parse(t):null;}
-    function FB({label,value}){if(!value)return null;const c=value==="Yes"||value==="White Box"||value==="Turnkey"?"yes":value==="No"?"no":"possible";return <span className={"feat "+c}>{label}: {value}</span>;}
+    function FB({label,value}){if(!value)return null;const yes=["Yes","White Box","Turnkey","Type 1","Type 2","Black Iron"];const c=yes.includes(value)?"yes":value==="No"?"no":"possible";return <span className={"feat "+c}>{label}: {value}</span>;}
+    function BsmtBadge({l}){if(!l.basement)return null;const v=l.basement==="Yes"&&l.basementSf?("Yes · "+Number(l.basementSf).toLocaleString()+" SF"):l.basement;const c=l.basement==="Yes"?"yes":"no";return <span className={"feat "+c}>Basement: {v}</span>;}
 
     function App(){
       const [page,setPage]=useState("login");
@@ -243,7 +245,7 @@
                   </div>
                   <div style={{textAlign:"right"}}><div style={{fontSize:10,color:"#444",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:4}}>Asking Rent</div><div style={{color:"#c8a96e",fontSize:14}}>Contact for pricing</div></div>
                 </div>
-                <div style={{marginTop:12}}><FB label="Gas" value={l.gas}/><FB label="Vents" value={l.vents}/><FB label="White Box" value={l.whiteBox}/><FB label="Basement" value={l.basement}/><FB label="Outdoor" value={l.outdoor}/><FB label="ADA" value={l.ada}/><FB label="Liquor License" value={l.liquor}/><FB label="Corner" value={l.corner}/><FB label="Self Tour" value={l.selfTour}/></div>
+                <div style={{marginTop:12}}><FB label="Gas" value={l.gas}/><FB label="Vents" value={l.vents}/><FB label="White Box" value={l.whiteBox}/><BsmtBadge l={l}/><FB label="Outdoor" value={l.outdoor}/><FB label="ADA" value={l.ada}/><FB label="Liquor License" value={l.liquor}/><FB label="Corner" value={l.corner}/><FB label="Self Tour" value={l.selfTour}/></div>
                 {l.highlights&&<div style={{marginTop:12,fontSize:12,color:"#777",lineHeight:1.7}}>{l.highlights}</div>}
                 <div style={{marginTop:20,paddingTop:16,borderTop:"1px solid #1e1e1e"}}><a href="mailto:Shiyuns@alignmentny.com" style={{textDecoration:"none"}}><button className="btn-gold">Inquire About This Space</button></a></div>
               </div>
@@ -288,7 +290,7 @@
                     <div><label className="label">Neighborhood</label><select className="input" value={af.n} onChange={e=>A("n",e.target.value)}><option value="">All</option>{HOODS.map(n=><option key={n}>{n}</option>)}</select></div>
                     <div><label className="label">Rent</label><select className="input" value={af.r} onChange={e=>A("r",e.target.value)}><option value="">Any Price</option>{RENTS.map((r,i)=><option key={i} value={i}>{r.l}</option>)}</select></div>
                     <div><label className="label">Gas</label><select className="input" value={af.gas} onChange={e=>A("gas",e.target.value)}><option value="">Any</option><option>Yes</option><option>No</option><option>Possible</option></select></div>
-                    <div><label className="label">Vents</label><select className="input" value={af.vents} onChange={e=>A("vents",e.target.value)}><option value="">Any</option><option>Yes</option><option>No</option><option>Possible</option></select></div>
+                    <div><label className="label">Vents</label><select className="input" value={af.vents} onChange={e=>A("vents",e.target.value)}><option value="">Any</option><option>Type 1</option><option>Type 2</option><option>Black Iron</option><option>No</option></select></div>
                   </div>
                   <div className="grid-4" style={{marginBottom:12}}>
                     <div><label className="label">Condition</label><select className="input" value={af.whiteBox} onChange={e=>A("whiteBox",e.target.value)}><option value="">Any</option><option>White Box</option><option>As-is</option><option>Turnkey</option></select></div>
@@ -338,13 +340,18 @@
                   <div style={{fontSize:10,color:"#c8a96e",letterSpacing:"0.15em",textTransform:"uppercase",marginBottom:12}}>Space Features</div>
                   <div className="grid-3" style={{marginBottom:12}}>
                     <div><label className="label">Gas</label><select className="input" value={form.gas} onChange={e=>S("gas",e.target.value)}>{YNP.map(v=><option key={v} value={v}>{v||"Select..."}</option>)}</select></div>
-                    <div><label className="label">Vents</label><select className="input" value={form.vents} onChange={e=>S("vents",e.target.value)}>{YNP.map(v=><option key={v} value={v}>{v||"Select..."}</option>)}</select></div>
+                    <div><label className="label">Vents</label><select className="input" value={form.vents} onChange={e=>S("vents",e.target.value)}>{VENTS_OPTS.map(v=><option key={v} value={v}>{v||"Select..."}</option>)}</select></div>
                     <div><label className="label">Condition</label><select className="input" value={form.whiteBox} onChange={e=>S("whiteBox",e.target.value)}>{WB_OPTS.map(v=><option key={v} value={v}>{v||"Select..."}</option>)}</select></div>
                   </div>
                   <div className="grid-3" style={{marginBottom:12}}>
                     <div><label className="label">Basement</label><select className="input" value={form.basement} onChange={e=>S("basement",e.target.value)}>{YN.map(v=><option key={v} value={v}>{v||"Select..."}</option>)}</select></div>
+                    {form.basement==="Yes"?<div><label className="label">Basement (SF)</label><input className="input" type="number" placeholder="500" value={form.basementSf} onChange={e=>S("basementSf",e.target.value)} /></div>:<div></div>}
                     <div><label className="label">Outdoor Space</label><select className="input" value={form.outdoor} onChange={e=>S("outdoor",e.target.value)}>{YN.map(v=><option key={v} value={v}>{v||"Select..."}</option>)}</select></div>
+                  </div>
+                  <div className="grid-3" style={{marginBottom:12}}>
                     <div><label className="label">ADA Compliant</label><select className="input" value={form.ada} onChange={e=>S("ada",e.target.value)}>{YN.map(v=><option key={v} value={v}>{v||"Select..."}</option>)}</select></div>
+                    <div></div>
+                    <div></div>
                   </div>
                   <div className="grid-3" style={{marginBottom:12}}>
                     <div><label className="label">Liquor License</label><select className="input" value={form.liquor} onChange={e=>S("liquor",e.target.value)}>{YNU.map(v=><option key={v} value={v}>{v||"Select..."}</option>)}</select></div>
@@ -376,7 +383,7 @@
                         <span style={{fontSize:10,color:"#444"}}>{l.status}</span>
                       </div>
                       {(l.useTypes||[]).map(u=><span key={u} className="tag sel" style={{cursor:"default"}}>{u}</span>)}
-                      <div style={{marginTop:6}}><FB label="Gas" value={l.gas}/><FB label="Vents" value={l.vents}/><FB label="WB" value={l.whiteBox}/><FB label="Bsmt" value={l.basement}/><FB label="Outdoor" value={l.outdoor}/><FB label="ADA" value={l.ada}/><FB label="Liquor" value={l.liquor}/><FB label="Corner" value={l.corner}/><FB label="Self Tour" value={l.selfTour}/></div>
+                      <div style={{marginTop:6}}><FB label="Gas" value={l.gas}/><FB label="Vents" value={l.vents}/><FB label="WB" value={l.whiteBox}/><BsmtBadge l={l}/><FB label="Outdoor" value={l.outdoor}/><FB label="ADA" value={l.ada}/><FB label="Liquor" value={l.liquor}/><FB label="Corner" value={l.corner}/><FB label="Self Tour" value={l.selfTour}/></div>
                     </div>
                     <div style={{textAlign:"right"}}><div style={{color:"#c8a96e",fontSize:14}}>{l.baseRent}</div><div style={{color:"#444",fontSize:11}}>{l.pricePerSF}</div></div>
                   </div>
